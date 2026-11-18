@@ -8,7 +8,8 @@ Map 3D du lycée du Pays de Retz (Pornic), agrandie façon FPS, jouable en 1 con
 - Manches de 1:45, 12 s d'achat, le premier qui élimine l'autre marque, premier à 5.
 - Fléchettes balistiques : vitesse propre à chaque arme et chute due à la gravité.
 - Boutique façon CS : Piston (USP-S), Vortex (MP5-SD), Tempête (SPAS-12), Rafale (M4A1-S), Longue-Vue (AWP).
-- Commandes : ZQSD / flèches, souris, clic gauche tirer, clic droit lunette, R recharger, 1/2 ou molette changer d'arme, B boutique, Maj courir, Espace sauter.
+- Commandes : ZQSD / flèches, souris, clic gauche tirer, clic droit lunette, R recharger, 1/2 ou molette changer d'arme, B boutique, Maj courir, C s'accroupir (silencieux), Espace sauter, Échap réglages.
+- Audio : pas différents selon le sol, sons étouffés derrière les murs, écho en intérieur.
 
 `index.html` est généré à partir de `src/` (head.html + map.js + game.js).
 HDRI « park » : Poly Haven, CC0, via @pmndrs/assets.
