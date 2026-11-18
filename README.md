@@ -9,6 +9,8 @@ Map 3D du lycée du Pays de Retz (Pornic), agrandie façon FPS, jouable en 1 con
 - Fléchettes balistiques : vitesse propre à chaque arme et chute due à la gravité.
 - Boutique façon CS : Piston (USP-S), Vortex (MP5-SD), Tempête (SPAS-12), Rafale (M4A1-S), Longue-Vue (AWP).
 - Commandes : ZQSD / flèches, souris, clic gauche tirer, clic droit lunette, R recharger, 1/2 ou molette changer d'arme, B boutique, Maj courir, C s'accroupir (silencieux), Espace sauter, Échap réglages.
+- Grenades : grenade à billes (jusqu'à 98 dégâts, rayon 6 m), flash (aveugle jusqu'à 4 s), fumigène (15 s) ; touches 3/4/5, clic gauche lancer loin, clic droit lober, G lancer rapide.
+- Salles détaillées : tableaux écrits à la main, plaques de porte, horloges, radiateurs, vidéoprojecteurs, panneaux de liège, menu du self, écran d'info.
 - Vitres cassables (fissures puis éclatement, réparées à chaque manche) ; rampes d'escalier solides.
 - Audio : pas différents selon le sol, sons étouffés derrière les murs, écho en intérieur.
 

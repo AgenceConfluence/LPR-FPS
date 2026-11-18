@@ -54,6 +54,8 @@
   #pbox .keys{font-size:12px;opacity:.65;margin-top:12px;line-height:1.6}
   #load{display:none}
   #money{bottom:62px;right:22px;font-size:20px;font-weight:800;color:#b6e36b;text-shadow:0 2px 4px rgba(0,0,0,.6)}
+  #nades{bottom:120px;right:22px;font-size:20px;display:flex;gap:8px}#nades span{background:rgba(0,0,0,.45);border-radius:6px;padding:2px 6px}#nades small{font-size:10px;opacity:.7;margin-left:3px}
+  #flashov{inset:0;background:#fff;opacity:0;z-index:7}
   #buyHint{bottom:92px;right:22px;font-size:13px;font-weight:700;background:rgba(140,198,63,.9);padding:4px 9px;border-radius:6px;display:none}
   #feed{top:44px;right:12px;font-size:13px;text-align:right;line-height:1.9}
   #feed div{background:rgba(0,0,0,.45);padding:2px 8px;border-radius:6px;margin-bottom:3px;display:inline-block}
@@ -88,6 +90,8 @@
 <div id="msg" class="hud"></div>
 <div id="dmg" class="hud"></div>
 <div id="money" class="hud">800 €</div>
+<div id="nades" class="hud"></div>
+<div id="flashov" class="hud"></div>
 <div id="buyHint" class="hud">B : boutique</div>
 <div id="feed" class="hud"></div>
 <div id="scope" class="hud"></div>
@@ -98,7 +102,7 @@
   <div class="row"><label>Champ de vision</label><input type="range" id="fov2" min="65" max="105" step="1"><span id="fov2V"></span></div>
   <div class="row"><label>Qualité</label><div id="qual"><button data-q="basse">Basse</button><button data-q="normale">Normale</button><button data-q="haute">Haute</button></div></div>
   <button id="resume">Reprendre</button>
-  <div class="keys">ZQSD bouger · Maj courir · C s'accroupir (silencieux) · Espace sauter · clic droit lunette · R recharger · 1/2 armes · B boutique</div>
+  <div class="keys">ZQSD bouger · Maj courir · C s'accroupir (silencieux) · Espace sauter · clic droit lunette · R recharger · 1/2 armes · 3/4/5 grenades (G : rapide) · B boutique</div>
 </div></div>
 <div id="lobby"><div id="card">
   <h1>Lycée du Pays de Retz</h1>
@@ -115,7 +119,7 @@
   <div class="sens">Sensibilité souris <input type="range" id="sens" min="0.2" max="3" step="0.05" value="1" style="flex:1"><span id="sensV">1.00</span></div>
   <ul>
     <li><kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd> se déplacer · <kbd>Maj</kbd> courir · <kbd>C</kbd> s'accroupir · <kbd>Espace</kbd> sauter</li>
-    <li>Clic gauche tirer · clic droit lunette · <kbd>R</kbd> recharger · <kbd>1</kbd><kbd>2</kbd>/molette changer d'arme</li><li><kbd>B</kbd> boutique (début de manche) · <kbd>Échap</kbd> pause</li>
+    <li>Clic gauche tirer · clic droit lunette · <kbd>R</kbd> recharger · <kbd>1</kbd><kbd>2</kbd>/molette changer d'arme</li><li><kbd>B</kbd> boutique · <kbd>3</kbd><kbd>4</kbd><kbd>5</kbd> grenade, flash, fumigène (clic gauche lancer loin, clic droit lober) · <kbd>Échap</kbd> pause</li>
     <li>Le premier qui touche l'autre jusqu'à 0 PV gagne la manche.</li>
   </ul>
 </div></div>

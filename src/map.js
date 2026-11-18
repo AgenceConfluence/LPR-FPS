@@ -107,7 +107,56 @@ const MAT = {
 };
 MAT.glassR=MAT.glass;
 for(const k in NRM){ if(MAT[k]&&MAT[k].map){ MAT[k].normalMap=normalFrom(MAT[k].map,NRM[k]); MAT[k].normalScale=new THREE.Vector2(1,1); } }
-const OWNUV=new Set(['poster']);
+const OWNUV=new Set(['poster','writing','plate','clock','menu','sign','cork']);
+// ---------- écritures : tableaux, plaques, horloge, menu ----------
+const HANDF="'Segoe Print','Bradley Hand','Comic Sans MS','Chalkboard SE','Marker Felt',cursive";
+function hand(g,txt,x,y,size,col,r){ g.fillStyle=col; let cx=x; for(const ch of txt){ const sz=size*(0.92+r()*0.16); g.font=`600 ${sz}px ${HANDF}`; g.save(); g.translate(cx,y+(r()-.5)*size*0.12); g.rotate((r()-.5)*0.12); g.fillText(ch,0,0); g.restore(); cx+=g.measureText(ch).width*0.98; } return cx; }
+const BOARDS=[
+  {l:[['Jeudi 19 novembre',38,'#1d3f8f'],['Chapitre 4 : Dérivation',46,'#b3261e'],["f(x) = 3x² − 2x + 1",40,'#1a1a1a'],["f'(x) = 6x − 2",40,'#1a1a1a'],['f\'(x) = 0  ⇔  x = 1/3',36,'#1d3f8f']],d:'parabola'},
+  {l:[['La Révolution française',46,'#b3261e'],['(1789 – 1799)',34,'#1a1a1a'],['• 14 juillet 1789 : prise de la Bastille',32,'#1d3f8f'],['• 26 août : DDHC',32,'#1d3f8f'],['• 1792 : proclamation de la République',32,'#1d3f8f']]},
+  {l:[['Électricité',46,'#2e7d32'],['Loi d\'Ohm :  U = R × I',40,'#1a1a1a'],['P = U × I   (en watts)',36,'#1a1a1a'],['R = 220 Ω  ;  I = 0,05 A',34,'#1d3f8f'],['→ U = ?',36,'#b3261e']],d:'circuit'},
+  {l:[['Homework for Monday',42,'#1d3f8f'],['p. 52  ex. 3 & 4',38,'#1a1a1a'],['Present perfect :',36,'#b3261e'],['I have been / she has seen',34,'#1a1a1a'],['Don\'t forget your books !',32,'#2e7d32']]},
+  {l:[['SVT — La mitose',44,'#2e7d32'],['prophase → métaphase',34,'#1a1a1a'],['→ anaphase → télophase',34,'#1a1a1a'],['2n chromosomes',32,'#1d3f8f']],d:'cell'},
+  {l:[['Philosophie',44,'#6a1b9a'],['Sujet : Peut-on être libre',38,'#1a1a1a'],['sans obéir aux lois ?',38,'#1a1a1a'],['« Je pense donc je suis » — Descartes',30,'#1d3f8f'],['I. … II. … III. …',32,'#b3261e']]},
+  {l:[['Le Rouge et le Noir — Stendhal',40,'#b3261e'],['Problématique :',34,'#1a1a1a'],['Julien Sorel, héros ambitieux ?',34,'#1d3f8f'],['Lecture : chap. 1 à 10',32,'#1a1a1a']]},
+  {l:[['DS VENDREDI !!',52,'#b3261e'],['Bac blanc : 12 janvier',38,'#1d3f8f'],['Révisez les chap. 1 à 5',34,'#1a1a1a'],['NE PAS EFFACER SVP',34,'#2e7d32']],d:'doodle'},
+];
+const BW=1024, BH=340;
+const boardTex=(()=>{ const c=document.createElement('canvas'); c.width=BW*2; c.height=BH*4; const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height);
+  BOARDS.forEach((bd,i)=>{ const ox=(i%2)*BW, oy=((i/2)|0)*BH, r=rng(100+i);
+    g.save(); g.beginPath(); g.rect(ox,oy,BW,BH); g.clip();
+    for(let k=0;k<5;k++){ g.fillStyle=`rgba(120,130,140,${.04+r()*.05})`; g.beginPath(); g.ellipse(ox+r()*BW,oy+r()*BH,60+r()*160,20+r()*50,r()*3,0,7); g.fill(); }
+    let y=oy+58; for(const [t,sz,col] of bd.l){ hand(g,t,ox+40+r()*20,y,sz,col,r); y+=sz*1.32; }
+    g.strokeStyle='#1d3f8f'; g.lineWidth=3;
+    if(bd.d==='parabola'){ const bx=ox+760, by=oy+250; g.beginPath(); g.moveTo(bx-110,by); g.lineTo(bx+130,by); g.moveTo(bx,by+30); g.lineTo(bx,by-200); g.stroke(); g.strokeStyle='#b3261e'; g.beginPath(); for(let t=-1;t<=1.01;t+=0.05){ const px=bx+t*100, py=by-20-(t*t*150); t<-0.99?g.moveTo(px,py):g.lineTo(px,py); } g.stroke(); }
+    if(bd.d==='circuit'){ const bx=ox+720, by=oy+90; g.strokeRect(bx,by,220,150); g.fillStyle='#fff'; g.fillRect(bx+80,by-12,60,24); g.strokeRect(bx+80,by-12,60,24); g.beginPath(); g.moveTo(bx-10,by+60); g.lineTo(bx+10,by+60); g.moveTo(bx-18,by+80); g.lineTo(bx+18,by+80); g.stroke(); hand(g,'R',bx+100,by-20,28,'#1a1a1a',r); }
+    if(bd.d==='cell'){ const bx=ox+800, by=oy+170; g.strokeStyle='#2e7d32'; g.beginPath(); g.ellipse(bx,by,120,90,0,0,7); g.stroke(); g.strokeStyle='#b3261e'; for(let k=0;k<6;k++){ g.beginPath(); g.moveTo(bx-40+k*16,by-30); g.lineTo(bx-30+k*16,by+30); g.stroke(); } }
+    if(bd.d==='doodle'){ const bx=ox+820, by=oy+180; g.strokeStyle='#2e7d32'; g.beginPath(); g.arc(bx,by,50,0,7); g.stroke(); g.beginPath(); g.arc(bx-18,by-12,6,0,7); g.arc(bx+18,by-12,6,0,7); g.stroke(); g.beginPath(); g.arc(bx,by+8,24,0.2,Math.PI-0.2); g.stroke(); }
+    g.restore(); });
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t; })();
+MAT.writing=new THREE.MeshBasicMaterial({map:boardTex,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2});
+function quad(mat,cx,cy,cz,w,h,faceYaw,u0,v0,u1,v1){ const g=new THREE.PlaneGeometry(w,h), uv=g.attributes.uv;
+  for(let k=0;k<uv.count;k++) uv.setXY(k,u0+uv.getX(k)*(u1-u0),v0+uv.getY(k)*(v1-v0)); g.rotateY(faceYaw); g.translate(cx,cy,cz); addRaw(mat,g); }
+// texte sur un tableau (coordonnées de plan, mur en x=xw, élève côté dirx)
+function boardWriting(xw,dirx,zc,L){ const i=(CR()*BOARDS.length)|0, u0=(i%2)/2, v0=1-(((i/2)|0)+1)/4;
+  quad('writing',xw*S+dirx*0.012,L+1.5,zc*S,3.6*S-0.15,1.15,dirx>0?Math.PI/2:-Math.PI/2,u0,v0,u0+0.5,v0+0.25); }
+// plaques de porte : l'atlas est dessiné à la fin, quand toutes les étiquettes sont connues
+const PLATES=[]; const PC=8, PR=16;
+function plate(txt,X,y,Zw,faceYaw){ const i=PLATES.length; PLATES.push(txt); const u0=(i%PC)/PC, v0=1-(((i/PC)|0)+1)/PR;
+  quad('plate',X,y,Zw,0.42,0.16,faceYaw,u0,v0,u0+1/PC,v0+1/PR); }
+MAT.plate=new THREE.MeshStandardMaterial({roughness:.4});
+const clockTex=(()=>{ const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d'); g.fillStyle='#fafaf7'; g.beginPath(); g.arc(128,128,124,0,7); g.fill();
+  g.lineWidth=10; g.strokeStyle='#2b2f33'; g.stroke(); g.fillStyle='#1a1a1a'; for(let i=0;i<12;i++){ const a=i/12*Math.PI*2; g.save(); g.translate(128+Math.sin(a)*100,128-Math.cos(a)*100); g.rotate(a); g.fillRect(-3,-12,6,24); g.restore(); }
+  g.font='600 22px system-ui'; g.textAlign='center'; g.fillText('LYCÉE',128,90);
+  const hand2=(a,len,w,col)=>{ g.save(); g.translate(128,128); g.rotate(a); g.fillStyle=col; g.fillRect(-w/2,-len,w,len+14); g.restore(); };
+  hand2(10.4/12*Math.PI*2,62,9,'#1a1a1a'); hand2(10/60*Math.PI*2,92,6,'#1a1a1a'); hand2(38/60*Math.PI*2,98,2,'#c0392b'); g.beginPath(); g.arc(128,128,7,0,7); g.fill();
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t; })();
+MAT.clock=new THREE.MeshStandardMaterial({map:clockTex,roughness:.3});
+function wallClock(X,y,Zw,faceYaw){ const g=new THREE.CircleGeometry(0.17,32); g.rotateY(faceYaw); g.translate(X,y,Zw); addRaw('clock',g); }
+const corkTex=canvasTex(256,(g,s)=>{ speckle(g,s,'#b98a55',6000,['#a87a48','#c99a62','#8d6438','#d8ac72'],2); });
+MAT.cork=new THREE.MeshStandardMaterial({map:corkTex,roughness:.9});
+MAT.radiator=M({map:canvasTex(128,(g,s)=>{ g.fillStyle='#f1f0ec'; g.fillRect(0,0,s,s); for(let i=0;i<8;i++){ g.fillStyle='rgba(0,0,0,.12)'; g.fillRect(i*s/8,0,3,s); g.fillStyle='rgba(255,255,255,.6)'; g.fillRect(i*s/8+4,0,2,s);} }),roughness:.5});
+TXS.radiator=0.6;
 const NOSHADOW = new Set(['glass','glassR','lamp']);
 
 // ---------- geometry bins + collision ----------
@@ -234,6 +283,7 @@ function desk2(x,z,L,alongZ=true,w=1.3,d=0.55,top='desk',leg='yellow'){ // centr
 function classroom(x0,x1,z0,z1,L,boardAt='x0',chairMat='blue'){
   const W=z1-z0, dirx=boardAt==='x0'?1:-1, xb=boardAt==='x0'?x0:x1;
   B('board',xb+dirx*0.06,xb+dirx*0.1,L+0.9,L+2.1,(z0+z1)/2-1.8,(z0+z1)/2+1.8,false);
+  boardWriting(xb+dirx*0.1,dirx,(z0+z1)/2,L); classDecor(xb,dirx,x0,x1,z0,z1,L);
   B('steel',xb+dirx*0.06,xb+dirx*0.16,L+0.86,L+0.9,(z0+z1)/2-1.8,(z0+z1)/2+1.8,false);
   desk2(xb+dirx*1.3,(z0+z1)/2-1.5,L,true,1.4,0.7,'desk','steel');
   const nz=Math.max(1,Math.floor((W-1.2)/1.85)), first=2.6, depth=Math.abs(x1-x0);
@@ -244,8 +294,23 @@ function classroom(x0,x1,z0,z1,L,boardAt='x0',chairMat='blue'){
   }
   lamps(Math.min(x0,x1),Math.max(x0,x1),z0,z1,L+3.3);
 }
+function classDecor(xb,dirx,x0,x1,z0,z1,L){
+  const zc=(z0+z1)/2;
+  wallClock(xb*S+dirx*0.14,L+2.75,zc*S,dirx>0?Math.PI/2:-Math.PI/2);
+  // vidéoprojecteur au plafond + écran enroulé au-dessus du tableau
+  const px=((x0+x1)/2)*S, pz=zc*S, top=L+3.3; rawBox('white',px-.18,px+.18,top-0.34,top-0.2,pz-.15,pz+.15); rawBox('steel',px-.02,px+.02,top-0.2,top,pz-.02,pz+.02); rawBox('screen',px+dirx*0.19-0.02,px+dirx*0.19+0.02,top-0.3,top-0.24,pz-.04,pz+.04);
+  rawBox('white',xb*S+dirx*0.12,xb*S+dirx*0.24,L+2.95,L+3.08,zc*S-2.6,zc*S+2.6);
+  // panneau de liège avec des feuilles
+  const cz=z0*S+0.06, cx0=((x0+x1)/2)*S-0.6; rawBox('cork',cx0,cx0+1.2,L+1.2,L+2.0,cz,cz+0.03);
+  for(let k=0;k<5;k++){ const px2=cx0+0.12+CR()*0.95, py=L+1.3+CR()*0.55; _e.set(0,0,(CR()-.5)*0.3); _q.setFromEuler(_e); _m4.compose(new THREE.Vector3(px2,py,cz+0.035),_q,new THREE.Vector3(1,1,1));
+    part(['white','cream','yellow','pink'][(CR()*4)|0],0.21,0.29,0.004,0,0,0,_m4); part('red',0.015,0.015,0.01,0,0.12,0.004,_m4); }
+  // chaise du prof et poubelle
+  chair(xb+dirx*1.9,zc-1.5,L,'dark',dirx>0?2:3,0.6);
+  if(CR()<.7){ const g=new THREE.CylinderGeometry(.16,.14,.38,12,1,true); g.translate(xb*S+dirx*0.5,L+.19,z1*S-0.4); addRaw('bin',g); }
+}
 function lab(x0,x1,z0,z1,L){
   B('board',x0+.06,x0+.1,L+.9,L+2.1,(z0+z1)/2-1.8,(z0+z1)/2+1.8,false);
+  boardWriting(x0+.1,1,(z0+z1)/2,L); classDecor(x0,1,x0,x1,z0,z1,L);
   const n=Math.floor((z1-z0-1)/2.4);
   for(let j=0;j<n;j++){ const z=z0+1.2+(j+.5)*(z1-z0-1.4)/n;
     B('white',x0+2.2,x1-0.8,L,L+.86,z-.35,z+.35); B('cream',x0+2.15,x1-0.75,L+.86,L+.92,z-.4,z+.4);
@@ -416,11 +481,14 @@ function barLevel(k){
   const nOps=[]; for(let i=0;i<17;i++){ const a=NX[i]; nOps.push({a:a+0.9,b:a+3.4,lo:L+0.9,hi:L+3.0,glass:true},{a:a+4.2,b:a+6.7,lo:L+0.9,hi:L+3.0,glass:true}); }
   nOps.push({a:131,b:132.6,lo:L+1,hi:L+3,glass:true});
   ext('x',0,0,134,L,yo,yi,-1,'metal',nOps);
+  for(const o of nOps) if(o.b-o.a<3) rawBox('radiator',o.a*S+0.1,o.b*S-0.1,L+0.15,L+0.75,0.13*S+0.01,0.13*S+0.1);
   ext('z',0,0,13,L,yo,yi,-1,'metal',[{a:9,b:11.5,lo:L+.9,hi:L+3,glass:true}]);
   ext('z',134,0,13,L,yo,yi,1,'metal',[{a:9,b:11.5,lo:L+.9,hi:L+3,glass:true}]);
   // salles nord + couloir
   const doors=[];
   for(let i=0;i<17;i++) doors.push(D(NX[i+1]-1.6,NX[i+1]-0.6,L));
+  for(let i=0;i<17;i++){ const lab=(k===2&&NX[i+1]<86)?'LABO '+(200+i+1):(k===1&&i===3)?'RESSOURCES':(pre+String(i+1).padStart(2,'0'));
+    plate(lab,(NX[i+1]-1.1)*S,L+2.62,8.06*S+0.012,0); }
   wall('x',8,0,129.6,L,yi,.12,'white',doors,true);
   for(let i=1;i<=17;i++) wall('z',NX[i],0,8,L,yi,.12,'white');
   for(let i=0;i<17;i++){ const a=NX[i], b=NX[i+1];
@@ -673,8 +741,23 @@ for(let x=96;x<140;x+=7) B('steel',x,x+0.12,0,1.0,23,23.12,false);
 const signTex=(()=>{ const c=document.createElement('canvas'); c.width=2048; c.height=256; const g=c.getContext('2d');
   g.clearRect(0,0,2048,256); g.fillStyle='#ffffff'; g.font='600 150px system-ui, sans-serif'; g.textBaseline='middle'; g.fillText('LYCÉE DU PAYS DE RETZ',20,130);
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t; })();
-{ const m=new THREE.Mesh(new THREE.PlaneGeometry(24,3),new THREE.MeshBasicMaterial({map:signTex,transparent:true}));
-  m.position.set(141.4,9.0,-1); m.rotation.y=Math.PI/2; } // (non utilisé)
+const sign2=(()=>{ const c=document.createElement('canvas'); c.width=2048; c.height=256; const g=c.getContext('2d'); g.fillStyle='#3d6b1f'; g.font='700 150px system-ui, sans-serif'; g.textBaseline='middle'; g.textAlign='center'; g.fillText('LYCÉE DU PAYS DE RETZ',1024,130);
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t; })();
+MAT.sign=new THREE.MeshBasicMaterial({map:sign2,transparent:true,polygonOffset:true,polygonOffsetFactor:-2});
+quad('sign',98*S+0.02,4.6,27.5*S,7.5,0.94,Math.PI/2,0,0,1,1);
+quad('sign',134*S+0.3,9.3,6.5*S,14,1.75,Math.PI/2,0,0,1,1);
+const menuTex=(()=>{ const c=document.createElement('canvas'); c.width=512; c.height=640; const g=c.getContext('2d'); g.fillStyle='#1f2a24'; g.fillRect(0,0,512,640); g.strokeStyle='#9ccc3c'; g.lineWidth=8; g.strokeRect(10,10,492,620); const r=rng(9);
+  hand(g,'MENU DU JOUR',80,90,52,'#ffffff',r); hand(g,'Jeudi',190,150,36,'#9ccc3c',r);
+  [['Entrée','Carottes râpées'],['Plat','Lasagnes maison'],['ou','Poisson pané / riz'],['Fromage','Yaourt nature'],['Dessert','Compote pomme'],['','Bon appétit !']].forEach(([a,b],i)=>{ hand(g,a,40,230+i*70,30,'#ffd23f',r); hand(g,b,190,230+i*70,32,'#ffffff',r); });
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t; })();
+MAT.menu=new THREE.MeshStandardMaterial({map:menuTex,roughness:.6});
+quad('menu',62*S-0.12,1.9,12*S,1.2,1.5,-Math.PI/2,0,0,1,1); quad('menu',36*S+0.12,1.9,2*S,1.2,1.5,Math.PI/2,0,0,1,1);
+const infoTex=(()=>{ const c=document.createElement('canvas'); c.width=640; c.height=360; const g=c.getContext('2d'); const gr=g.createLinearGradient(0,0,0,360); gr.addColorStop(0,'#1b4f8f'); gr.addColorStop(1,'#0f2f57'); g.fillStyle=gr; g.fillRect(0,0,640,360);
+  g.fillStyle='#fff'; g.font='700 34px system-ui'; g.fillText('Lycée du Pays de Retz',24,52); g.font='500 22px system-ui'; g.fillStyle='#9ccc3c'; g.fillText('Jeudi 19 novembre · 08:12',24,88);
+  g.fillStyle='#fff'; g.font='500 22px system-ui'; ['• Absences : M. Martin (maths) — 2nde 3 en étude','• Réunion parents-profs mardi 18h','• Club théâtre : jeudi 12h30','• Cross du lycée : vendredi 27 novembre'].forEach((t,i)=>g.fillText(t,24,140+i*44));
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t; })();
+MAT.info=new THREE.MeshBasicMaterial({map:infoTex}); OWNUV.add('info');
+rawBox('dark',94*S-0.19,94*S-0.1,1.6,2.9,43.2*S-1.15,43.2*S+1.15); quad('info',94*S-0.195,2.25,43.2*S,2.15,1.2,-Math.PI/2,0,0,1,1);
 const mottoTex=(()=>{ const c=document.createElement('canvas'); c.width=1024; c.height=512; const g=c.getContext('2d');
   const words=[['Liberté',0,90,'#ffffff',96],['Égalité',260,210,'#9ccc3c',130],['Fraternité',40,350,'#ffffff',150],['Liberté',520,450,'#9ccc3c',70],['Égalité',600,90,'#ffffff',70]];
   for(const [w,x,y,col,sz] of words){ g.font=`600 ${sz}px system-ui, sans-serif`; g.fillStyle=col; g.globalAlpha=.9; g.fillText(w,x,y); }
@@ -702,7 +785,7 @@ function bin(X,L,Zw){ const g=new THREE.CylinderGeometry(.22,.19,.7,14,1,true); 
   // couloirs du bâtiment B (R+1, R+2) : affiches, extincteurs, sacs près des casiers
   for(const k of [1,2]){ const L=LV[k];
     for(let i=0;i<17;i++){ const xa=NX[i]*S, xb=NX[i+1]*S;
-      if(i%2===1){ poster((xa+xb)/2-0.9,L+1.55,8*S+0.08,0); poster((xa+xb)/2+0.1,L+1.6,8*S+0.08,0); }
+      if(i%2===1){ poster((xa+xb)/2-0.9,L+1.55,8.06*S+0.012,0); poster((xa+xb)/2+0.1,L+1.6,8.06*S+0.012,0); }
       if(i%4===0){ extinguisher(xa+0.4,L,8*S+0.15); }
       if(CR()<0.45) bag(xa+1+CR()*(xb-xa-2),9*S+CR()*1.2,L);
       if(i%5===2) bin(xa+0.5,L,12*S-0.3);
@@ -710,7 +793,7 @@ function bin(X,L,Zw){ const g=new THREE.CylinderGeometry(.22,.19,.7,14,1,true); 
     exitSign(2*S,L+2.5,8*S+0.08); exitSign(131.8*S,L+2.5,8*S+0.1); exitSign(68.7*S,L+2.6,12*S-0.1); exitSign(6.2*S,L+2.6,12*S-0.1);
   }
   // couloir RDC
-  for(let x=70;x<126;x+=7.6){ poster(x*S,1.6,8*S+0.08,0); if(CR()<.5) bag((x+2)*S,9.5*S,0); }
+  for(let x=70;x<126;x+=7.6){ poster(x*S,1.6,8.06*S+0.012,0); if(CR()<.5) bag((x+2)*S,9.5*S,0); }
   extinguisher(66*S,0,8*S+0.15); extinguisher(127*S,0,11*S-0.15); exitSign(64*S,2.6,11*S-0.1);
   // préau : sacs autour des bancs, poubelles
   for(const [x,z] of [[66,33],[67,34.2],[78,32],[71,39],[64,25],[75.5,24.5],[79,36.8],[69,30]]) bag(x*S+(CR()-.5),z*S+(CR()-.5),0);
@@ -729,6 +812,9 @@ function bin(X,L,Zw){ const g=new THREE.CylinderGeometry(.22,.19,.7,14,1,true); 
   for(let x=64;x<110;x+=6){ poster(x*S,LV[1]+1.6,44.5*S-0.08,1); if(CR()<.3) bag(x*S+1,43*S,LV[1]); }
   for(let x=64;x<92;x+=6){ poster(x*S,1.6,44.5*S-0.08,1); }
 }
+{ const c=document.createElement('canvas'); c.width=PC*128; c.height=PR*48; const g=c.getContext('2d'); g.fillStyle='#f4f4f1'; g.fillRect(0,0,c.width,c.height);
+  PLATES.forEach((t,i)=>{ const x=(i%PC)*128, y=((i/PC)|0)*48; g.fillStyle='#2f6b2a'; g.fillRect(x+2,y+2,124,44); g.fillStyle='#ffffff'; g.font=`700 ${t.length>5?18:28}px system-ui`; g.textAlign='center'; g.textBaseline='middle'; g.fillText(t,x+64,y+25); });
+  const tx=new THREE.CanvasTexture(c); tx.colorSpace=THREE.SRGBColorSpace; tx.anisotropy=8; MAT.plate.map=tx; }
 // ---------- merge ----------
 function worldUV(g,s){ const p=g.attributes.position, n=g.attributes.normal, uv=new Float32Array(p.count*2);
   for(let i=0;i<p.count;i++){ const ax=Math.abs(n.getX(i)), ay=Math.abs(n.getY(i)), az=Math.abs(n.getZ(i)); let u,v;
