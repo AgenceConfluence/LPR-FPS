@@ -870,11 +870,11 @@ const ROUND_TIME=105, FREEZE=12, END_TIME=4, WIN=5, BUY_LIVE=20;
 const SPAWN={ A:{x:118*S,z:27*S,yaw:Math.PI/2,name:'Parvis'}, B:{x:38*S,z:31*S,yaw:-Math.PI/2,name:'Devant le self'} };
 const COL={A:'#e8742c',B:'#2a7fd4'};
 const WEAPONS={
-  pistol:{name:'Piston',cs:'USP-S',price:0,slot:2,mag:12,res:36,auto:false,rate:0.17,reload:2.1,dmg:{head:100,body:34,leg:26},spread:0.003,move:0.02,air:0.06,kick:0.014,pellets:1,reward:300,speed:32,snd:'pistol',fall:[40,120,0.75]},
-  mp5:{name:'Vortex',cs:'MP5-SD',price:1500,slot:1,mag:30,res:120,auto:true,rate:0.08,reload:2.6,dmg:{head:72,body:25,leg:19},spread:0.005,move:0.012,air:0.06,kick:0.006,pellets:1,reward:600,speed:35,snd:'mp5',fall:[25,70,0.7]},
-  spas:{name:'Tempête',cs:'SPAS-12',price:1800,slot:1,mag:7,res:28,auto:false,rate:0.9,reload:3.2,dmg:{head:40,body:22,leg:16},spread:0.0,pelletSpread:0.045,move:0.0,air:0.03,kick:0.05,pellets:8,reward:900,speed:28,snd:'spas',fall:[8,24,0.15]},
-  m4:{name:'Rafale',cs:'M4A1-S',price:2900,slot:1,mag:25,res:75,auto:true,rate:0.1,reload:3.0,dmg:{head:92,body:31,leg:24},spread:0.0025,move:0.05,air:0.1,kick:0.009,spray:true,pellets:1,reward:300,speed:42,snd:'m4',fall:[50,150,0.8]},
-  awp:{name:'Longue-Vue',cs:'AWP',price:4750,slot:1,mag:5,res:30,auto:false,rate:1.45,reload:3.6,dmg:{head:200,body:115,leg:85},spread:0.09,scoped:0.0006,move:0.12,air:0.2,kick:0.06,pellets:1,reward:100,speed:60,snd:'awp',zoom:[40,15],fall:[200,300,1]},
+  pistol:{name:'Piston',cs:'USP-S',price:0,slot:2,mag:12,res:36,auto:false,rate:0.17,reload:2.1,dmg:{head:100,body:34,leg:26},spread:0.003,move:0.02,air:0.06,kick:0.014,pellets:1,reward:300,speed:90,snd:'pistol',fall:[40,120,0.75]},
+  mp5:{name:'Vortex',cs:'MP5-SD',price:1500,slot:1,mag:30,res:120,auto:true,rate:0.08,reload:2.6,dmg:{head:72,body:25,leg:19},spread:0.005,move:0.012,air:0.06,kick:0.006,pellets:1,reward:600,speed:85,snd:'mp5',fall:[25,70,0.7]},
+  spas:{name:'Tempête',cs:'SPAS-12',price:1800,slot:1,mag:7,res:28,auto:false,rate:0.9,reload:3.2,dmg:{head:40,body:22,leg:16},spread:0.0,pelletSpread:0.045,move:0.0,air:0.03,kick:0.05,pellets:8,reward:900,speed:60,snd:'spas',fall:[8,24,0.15]},
+  m4:{name:'Rafale',cs:'M4A1-S',price:2900,slot:1,mag:25,res:75,auto:true,rate:0.1,reload:3.0,dmg:{head:92,body:31,leg:24},spread:0.0025,move:0.05,air:0.1,kick:0.009,spray:true,pellets:1,reward:300,speed:120,snd:'m4',fall:[50,150,0.8]},
+  awp:{name:'Longue-Vue',cs:'AWP',price:4750,slot:1,mag:5,res:30,auto:false,rate:1.45,reload:3.6,dmg:{head:200,body:115,leg:85},spread:0.09,scoped:0.0006,move:0.12,air:0.2,kick:0.06,pellets:1,reward:100,speed:220,snd:'awp',zoom:[40,15],fall:[200,300,1]},
 };
 const SHOP=['pistol','mp5','spas','m4','awp'];
 
@@ -987,19 +987,46 @@ const puffMat=new THREE.MeshBasicMaterial({color:'#ffffff',transparent:true,opac
 const puffGeo=new THREE.SphereGeometry(0.05,8,6);
 const flying=[], stuck=[], puffs=[], falling=[];
 function makeDart(side){ const g=new THREE.Group(); g.add(new THREE.Mesh(dartGeo,dartMat[side])); g.add(new THREE.Mesh(tipGeo,tipMat)); g.scale.setScalar(2.1); return g; }
-function spawnDart(o,e,side,speed,hitPlayer){
-  const m=makeDart(side); m.position.copy(o); m.lookAt(e); m.rotateY(Math.PI); scene.add(m);
+// projectiles balistiques : vitesse initiale + gravité, impact testé segment par segment
+const GRAV=9.8, MAXLIFE=4;
+function spawnProj(o,vel,side,w,local,muzzle){
+  const m=makeDart(side); scene.add(m);
   const tr=new THREE.Mesh(trailGeo,trailMat[side]); tr.scale.set(1,1,0.01); m.add(tr);
-  const dir=e.clone().sub(o); const len=dir.length(); dir.normalize();
-  flying.push({m,tr,o:o.clone(),e:e.clone(),dir,t:0,len,speed,hitPlayer,side});
+  const off=muzzle?muzzle.clone().sub(o):new THREE.Vector3();
+  flying.push({m,tr,pos:o.clone(),vel:vel.clone(),side,w,local,dist:0,life:0,off});
+}
+const _seg=new THREE.Vector3(), _nx=new THREE.Vector3(), _look=new THREE.Vector3();
+function landDart(f,at,dir,onPlayer){
+  scene.remove(f.m); f.m.remove(f.tr); scene.add(f.m);
+  if(onPlayer){ sfxAt('thwap',at); f.m.position.copy(at); const v=dir.clone().multiplyScalar(-2.5); v.y=2; falling.push({m:f.m,v,spin:new THREE.Vector3(Math.random()*12,Math.random()*12,0)}); }
+  else { f.m.position.copy(at).addScaledVector(dir,0.03); _look.copy(f.m.position).sub(dir); f.m.lookAt(_look); f.m.userData.wob={t:0,base:f.m.quaternion.clone()}; stuck.push(f.m); sfxAt('plop',at); if(stuck.length>160) scene.remove(stuck.shift()); }
+}
+function stepProj(f,dt){
+  const n=Math.max(1,Math.ceil(f.vel.length()*dt/0.6)), h=dt/n;
+  for(let i=0;i<n;i++){
+    _nx.copy(f.pos).addScaledVector(f.vel,h); _nx.y-=0.5*GRAV*h*h;
+    _seg.copy(_nx).sub(f.pos); const len=_seg.length(); if(len<1e-6) continue; const dir=_seg.clone().divideScalar(len);
+    const tw=rayWorld(f.pos,dir,len+0.01);
+    let r=null;
+    if(f.local){ if(mode==='net'&&enemy.E.alive){ r=rayPlayer(f.pos,dir,enemy.E); if(r&&(r.t>len||r.t>=tw)) r=null; } }
+    else if(P.alive){ r=rayPlayer(f.pos,dir,{x:P.x,feet:P.feet,z:P.z}); if(r&&(r.t>len||r.t>=tw)) r=null; }
+    if(r){ const at=f.pos.clone().addScaledVector(dir,r.t);
+      if(f.local){ const w=WEAPONS[f.w]; let dmg=w.dmg[r.zone]; const [f0,f1,m]=w.fall, d=f.dist+r.t; if(d>f0) dmg*=1-(1-m)*Math.min(1,(d-f0)/(f1-f0));
+        dmg=Math.round(dmg); net.send('hit',{dmg,zone:r.zone,w:f.w}); hitMarker(r.zone==='head'); sfx(r.zone==='head'?'head':'hit'); }
+      landDart(f,at,dir,true); return false; }
+    if(tw<=len){ landDart(f,f.pos.clone().addScaledVector(dir,tw),dir,false); return false; }
+    f.pos.copy(_nx); f.vel.y-=GRAV*h; f.dist+=len;
+  }
+  f.life+=dt; if(f.life>MAXLIFE||f.pos.y<-10){ scene.remove(f.m); return false; }
+  // rendu : le visuel part du canon puis rejoint la trajectoire réelle
+  const k=Math.max(0,1-f.life/0.12); f.m.position.copy(f.pos).addScaledVector(f.off,k);
+  _look.copy(f.m.position).sub(f.vel); f.m.lookAt(_look);
+  f.tr.scale.z=Math.min(2.4,f.dist)/2.1;
+  return true;
 }
 function spawnPuff(p){ const m=new THREE.Mesh(puffGeo,puffMat.clone()); m.position.copy(p); scene.add(m); puffs.push({m,t:0}); }
 function updDarts(dt){
-  for(let i=flying.length-1;i>=0;i--){ const f=flying[i]; f.t+=dt*f.speed; const k=Math.min(1,f.t/f.len); f.m.position.lerpVectors(f.o,f.e,k);
-    f.tr.scale.z=Math.min(2.4,f.t)/2.1;
-    if(k>=1){ flying.splice(i,1); f.m.remove(f.tr);
-      if(f.hitPlayer){ sfxAt('thwap',f.e); const v=f.dir.clone().multiplyScalar(-2.5); v.y=2; falling.push({m:f.m,v,spin:new THREE.Vector3(Math.random()*12,Math.random()*12,0)}); }
-      else { f.m.position.copy(f.e).addScaledVector(f.dir,0.03); f.m.userData.wob={t:0,base:f.m.quaternion.clone()}; stuck.push(f.m); sfxAt('plop',f.e); if(stuck.length>160) scene.remove(stuck.shift()); } } }
+  for(let i=flying.length-1;i>=0;i--){ if(!stepProj(flying[i],dt)) flying.splice(i,1); }
   for(const m of stuck){ const w=m.userData.wob; if(w&&w.t<0.45){ w.t+=dt; const a=Math.sin(w.t*45)*0.12*Math.exp(-w.t*9); m.quaternion.copy(w.base); m.rotateX(a); } }
   for(let i=falling.length-1;i>=0;i--){ const f=falling[i]; f.v.y-=9.8*dt; f.m.position.addScaledVector(f.v,dt); f.m.rotation.x+=f.spin.x*dt; f.m.rotation.y+=f.spin.y*dt;
     const fl=floorAt(f.m.position.x,f.m.position.z,f.m.position.y); if(f.m.position.y<=fl+0.03){ f.m.position.y=fl+0.03; f.m.rotation.x=Math.PI/2; falling.splice(i,1); stuck.push(f.m); } }
@@ -1095,9 +1122,9 @@ function onData(d){
   switch(d.t){
     case 'ready': peerReady=true; maybeStart(); break;
     case 's': enemy.buf.push({tm:performance.now(),x:d.x,feet:d.f,z:d.z,yaw:d.y,pitch:d.p,alive:d.a,w:d.w}); if(enemy.buf.length>30) enemy.buf.shift(); break;
-    case 'shot': { const o=new THREE.Vector3().fromArray(d.o); const wp=WEAPONS[d.w]||WEAPONS.pistol;
-      d.e.forEach((e,i)=>spawnDart(o,new THREE.Vector3().fromArray(e),enemy.side,wp.speed,!!(d.h&&d.h[i])));
-      spawnPuff(o); sfxAt(wp.snd,o,1.1); break; }
+    case 'shot': { const o=new THREE.Vector3().fromArray(d.o), mz=new THREE.Vector3().fromArray(d.m||d.o); const wp=WEAPONS[d.w]||WEAPONS.pistol;
+      (d.v||[]).forEach(v=>spawnProj(o,new THREE.Vector3().fromArray(v),enemy.side,d.w,false,mz));
+      spawnPuff(mz); sfxAt(wp.snd,mz,1.1); break; }
     case 'hit': if(P.alive&&G.phase==='live'){ P.hp=Math.max(0,P.hp-d.dmg); P.lastHitW=d.w; hurtFx(); if(P.hp<=0) die(d.w,d.zone); } break;
     case 'die': enemyDied(d); break;
     case 'g': applyRound(d); break;
@@ -1168,19 +1195,15 @@ function fire(){
   if(w.spray) spread+=Math.min(0.03,P.spray*0.004);
   camera.getWorldDirection(DIRV);
   const o=camera.getWorldPosition(new THREE.Vector3()), muzzle=muzzleWorld();
-  const ends=[], hits=[]; let total=0, zoneHit=null;
+  const vels=[];
   for(let p=0;p<w.pellets;p++){
     const d=DIRV.clone(); const sp=spread+(w.pelletSpread||0);
     d.x+=(Math.random()-.5)*2*sp; d.y+=(Math.random()-.5)*2*sp; d.z+=(Math.random()-.5)*2*sp; d.normalize();
-    const tw=rayWorld(o,d,200);
-    let hit=null; if(mode==='net'&&enemy.E.alive){ const r=rayPlayer(o,d,enemy.E); if(r&&r.t<tw) hit=r; }
-    const tEnd=hit?hit.t:tw; const end=o.clone().addScaledVector(d,tEnd);
-    ends.push(end); hits.push(hit?1:0);
-    if(hit){ let dmg=w.dmg[hit.zone]; const [f0,f1,m]=w.fall; if(hit.t>f0) dmg*=1-(1-m)*Math.min(1,(hit.t-f0)/(f1-f0)); total+=dmg; if(!zoneHit||hit.zone==='head') zoneHit=hit.zone; }
+    const v=d.multiplyScalar(w.speed); vels.push(v); spawnProj(o,v,P.side,sl.w,true,muzzle);
   }
-  ends.forEach((e,i)=>spawnDart(muzzle,e,P.side,w.speed,!!hits[i])); spawnPuff(muzzle); sfx(w.snd,0.8);
-  net.send('shot',{w:sl.w,o:muzzle.toArray().map(v=>+v.toFixed(2)),e:ends.map(e=>e.toArray().map(v=>+v.toFixed(2))),h:hits});
-  if(total>0){ total=Math.round(total); net.send('hit',{dmg:total,zone:zoneHit,w:sl.w}); hitMarker(zoneHit==='head'); sfx(zoneHit==='head'?'head':'hit'); }
+  spawnPuff(muzzle); sfx(w.snd,0.8);
+  const r2=a=>a.toArray().map(x=>+x.toFixed(3));
+  net.send('shot',{w:sl.w,o:r2(o),m:r2(muzzle),v:vels.map(r2)});
   // recul
   P.spray++; const k=w.kick*(w.spray?Math.min(1.6,0.6+P.spray*0.12):1);
   P.pitch=Math.min(1.45,P.pitch+k+Math.random()*k*0.3); P.yaw+=(Math.random()-.5)*k*(w.spray&&P.spray>6?1.4:0.5);
@@ -1341,7 +1364,7 @@ addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.upd
 const BASEFOV=78; camera.fov=BASEFOV; camera.updateProjectionMatrix();
 respawn();
 window.__G=G; window.__P=P; window.__net=net; window.__sim=(code,secs)=>{ keys[code]=true; for(let i=0;i<secs*60;i++) update(1/60); keys[code]=false; };
-window.__fire=()=>fire(); window.__enemy=enemy; window.__buy=buy; window.__S=S; window.__upd=(s)=>{ for(let i=0;i<s*60;i++) update(1/60); };
+window.__fire=()=>fire(); window.__stuck=stuck; window.__flying=flying; window.__enemy=enemy; window.__buy=buy; window.__S=S; window.__upd=(s)=>{ for(let i=0;i<s*60;i++) update(1/60); };
 window.__info=()=>({calls:renderer.info.render.calls,tris:renderer.info.render.triangles,geo:renderer.info.memory.geometries});
 window.__ready=true;
 $('bHost').disabled=false; $('bSolo').disabled=false; status('');
