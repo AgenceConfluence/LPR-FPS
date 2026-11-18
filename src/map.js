@@ -105,9 +105,10 @@ const MAT = {
   exit:new THREE.MeshStandardMaterial({color:'#1f9d55', emissive:'#22c55e', emissiveIntensity:1.2}),
   poster:M({roughness:.7}), bin:M({color:'#3e6b4a',roughness:.6}),
 };
+MAT.glassR=MAT.glass;
 for(const k in NRM){ if(MAT[k]&&MAT[k].map){ MAT[k].normalMap=normalFrom(MAT[k].map,NRM[k]); MAT[k].normalScale=new THREE.Vector2(1,1); } }
 const OWNUV=new Set(['poster']);
-const NOSHADOW = new Set(['glass','lamp']);
+const NOSHADOW = new Set(['glass','glassR','lamp']);
 
 // ---------- geometry bins + collision ----------
 const bins = {};
@@ -118,20 +119,34 @@ function addBox(x0,x1,y0,y1,z0,z1,m){
   const b={x0,x1,y0,y1,z0,z1,m}; boxes.push(b);
   for(let cx=Math.floor(x0/CELL); cx<=Math.floor(x1/CELL); cx++) for(let cz=Math.floor(z0/CELL); cz<=Math.floor(z1/CELL); cz++){
     const k=cx*100003+cz; let a=grid.get(k); if(!a){a=[];grid.set(k,a);} a.push(b); }
+  return b;
 }
 function B(mat,x0,x1,y0,y1,z0,z1,solid=true){
   if(x1<x0)[x0,x1]=[x1,x0]; if(y1<y0)[y0,y1]=[y1,y0]; if(z1<z0)[z0,z1]=[z1,z0];
   if(x1-x0<1e-3||y1-y0<1e-3||z1-z0<1e-3) return;
   [x0,x1]=T1(x0,x1); [z0,z1]=T1(z0,z1);
+  if(mat==='glass'&&solid){ // vitrage découpé en carreaux d'environ 2 m × 3,8 m maximum
+    const alongX=(x1-x0)>=(z1-z0), L=alongX?x1-x0:z1-z0, nh=Math.max(1,Math.round(L/2.0)), nv=Math.max(1,Math.ceil((y1-y0)/3.8));
+    for(let i=0;i<nh;i++) for(let j=0;j<nv;j++){ const a0=(alongX?x0:z0)+L*i/nh, a1=(alongX?x0:z0)+L*(i+1)/nh, b0=y0+(y1-y0)*j/nv, b1=y0+(y1-y0)*(j+1)/nv;
+      const X0=alongX?a0:x0, X1=alongX?a1:x1, Z0=alongX?z0:a0, Z1=alongX?z1:a1;
+      const g=new THREE.BoxGeometry(X1-X0,b1-b0,Z1-Z0); g.translate((X0+X1)/2,(b0+b1)/2,(Z0+Z1)/2); addRaw(mat,g);
+      registerPane([addBox(X0,X1,b0,b1,Z0,Z1,mat)],X0,X1,b0,b1,Z0,Z1); }
+    return; }
   const g=new THREE.BoxGeometry(x1-x0,y1-y0,z1-z0); g.translate((x0+x1)/2,(y0+y1)/2,(z0+z1)/2); addRaw(mat,g);
   if(solid) addBox(x0,x1,y0,y1,z0,z1,mat);
 }
+const panes=[];
+function registerPane(bx,x0,x1,y0,y1,z0,z1){ const id=panes.length; const g=bins.glass.length-1;
+  const nAxis=(x1-x0)<(z1-z0)?'x':'z', area=(nAxis==='x'?(z1-z0):(x1-x0))*(y1-y0);
+  const hp=Math.round(Math.min(80,45+area*3)); panes.push({id,boxes:bx,gi:g,x0,x1,y0,y1,z0,z1,nAxis,hp,hp0:hp,broken:false});
+  for(const b of bx) b.pane=id; }
 // arbitrary-angle wall segment (visual box + small collision boxes)
 function seg(mat,xa,za,xb,zb,y0,y1,t,solid=true){
   xa*=S; xb*=S; za*=S; zb*=S;
   const dx=xb-xa, dz=zb-za, L=Math.hypot(dx,dz); if(L<1e-3) return;
   const g=new THREE.BoxGeometry(L,y1-y0,t); g.rotateY(-Math.atan2(dz,dx)); g.translate((xa+xb)/2,(y0+y1)/2,(za+zb)/2); addRaw(mat,g);
-  if(solid){ const n=Math.ceil(L/0.35); for(let i=0;i<=n;i++){ const x=xa+dx*i/n, z=za+dz*i/n; addBox(x-.12,x+.12,y0,y1,z-.12,z+.12);} }
+  if(solid){ const n=Math.ceil(L/0.35), bx=[]; for(let i=0;i<=n;i++){ const x=xa+dx*i/n, z=za+dz*i/n; bx.push(addBox(x-.12,x+.12,y0,y1,z-.12,z+.12,mat));}
+    if(mat==='glass') registerPane(bx,Math.min(xa,xb)-.12,Math.max(xa,xb)+.12,y0,y1,Math.min(za,zb)-.12,Math.max(za,zb)+.12); }
 }
 function rotBox(mat,cx,cz,w,d,y0,y1,ang,solid){
   cx*=S; cz*=S; if(MODE==='lay'){ w*=S; d*=S; }
@@ -297,7 +312,10 @@ function stair(x0,x1,zFoot,dir,L,rise,n,g=0.28,rail=true){
   const len=n*g, ang=Math.atan2(rise,len);
   const geo=new THREE.BoxGeometry(x1-x0,0.18,Math.hypot(len,rise)); geo.rotateX(dir>0?-ang:ang); geo.translate((x0+x1)/2,L+rise/2-0.22,zFoot+dir*len/2); addG('white',geo);
   if(rail){ for(const x of [x0+0.03,x1-0.03]){ const gr=new THREE.BoxGeometry(0.04,0.05,Math.hypot(len,rise)); gr.rotateX(dir>0?-ang:ang); gr.translate(x,L+rise/2+0.95,zFoot+dir*len/2); addG('steel',gr);
-      const gp=new THREE.BoxGeometry(0.02,0.9,Math.hypot(len,rise)); gp.rotateX(dir>0?-ang:ang); gp.translate(x,L+rise/2+0.5,zFoot+dir*len/2); addG('glass',gp); } }
+      const gp=new THREE.BoxGeometry(0.02,0.9,Math.hypot(len,rise)); gp.rotateX(dir>0?-ang:ang); gp.translate(x,L+rise/2+0.5,zFoot+dir*len/2); addG('glassR',gp); }
+    // collision des rampes : une petite boîte par marche, de chaque côté
+    for(let i=0;i<n;i++){ const za=zFoot+dir*i*g, zb=zFoot+dir*(i+1)*g, top=L+(i+1)*r;
+      for(const [xa,xb] of [[x0,x0+0.07],[x1-0.07,x1]]){ const [X0,X1]=T1(xa,xb), [Z0,Z1]=T1(Math.min(za,zb),Math.max(za,zb)); addBox(X0,X1,top,top+1.05,Z0,Z1,'rail'); } } }
   return zFoot+dir*len;
 }
 // switchback: front at zFront (floor side), flights go toward dir
@@ -309,8 +327,8 @@ function switchback(x0,x1,zFront,dir,L,rise,n2){
   B('white',x0+w,x1-w,L,L+rise+1.0,zFront,zFar);
   return [x0,x1,Math.min(zFront,zEnd),Math.max(zFront,zEnd)];
 }
-function railX(z,x0,x1,L){ B('glass',x0,x1,L,L+1.05,z-.02,z+.02); B('steel',x0,x1,L+1.02,L+1.08,z-.04,z+.04,false); }
-function railZ(x,z0,z1,L){ B('glass',x-.02,x+.02,L,L+1.05,z0,z1); B('steel',x-.04,x+.04,L+1.02,L+1.08,z0,z1,false); }
+function railX(z,x0,x1,L){ B('glassR',x0,x1,L,L+1.05,z-.02,z+.02); B('steel',x0,x1,L+1.02,L+1.08,z-.04,z+.04,false); }
+function railZ(x,z0,z1,L){ B('glassR',x-.02,x+.02,L,L+1.05,z0,z1); B('steel',x-.04,x+.04,L+1.02,L+1.08,z0,z1,false); }
 
 // ============================================================
 //  BUILD — coordinates in metres: x → est, z → sud, y ↑
@@ -717,13 +735,16 @@ function worldUV(g,s){ const p=g.attributes.position, n=g.attributes.normal, uv=
     if(ay>=ax&&ay>=az){u=p.getX(i);v=p.getZ(i);} else if(ax>=az){u=p.getZ(i);v=p.getY(i);} else {u=p.getX(i);v=p.getY(i);}
     uv[i*2]=u/s; uv[i*2+1]=v/s; }
   g.setAttribute('uv',new THREE.BufferAttribute(uv,2)); }
-const staticGroup=new THREE.Group(); scene.add(staticGroup);
+const staticGroup=new THREE.Group(); scene.add(staticGroup); const GLASS={mesh:null,orig:null};
 for(const k in bins){
   const keepUV=OWNUV.has(k);
   const gs=bins[k].map(g=>{ const o=new THREE.BufferGeometry(); o.setAttribute('position',g.attributes.position); o.setAttribute('normal',g.attributes.normal); if(keepUV) o.setAttribute('uv',g.attributes.uv); return o; });
   const merged=mergeGeometries(gs,false); if(!keepUV) worldUV(merged,TXS[k]||2);
-  const mesh=new THREE.Mesh(merged,MAT[k]); mesh.castShadow=!NOSHADOW.has(k); mesh.receiveShadow=k!=='glass';
-  if(k==='glass') mesh.renderOrder=2;
+  const mesh=new THREE.Mesh(merged,MAT[k]); mesh.castShadow=!NOSHADOW.has(k); mesh.receiveShadow=!(k==='glass'||k==='glassR');
+  if(k==='glass'||k==='glassR') mesh.renderOrder=2;
+  if(k==='glass'){ let off=0; const starts=bins[k].map(g=>{ const o=off; off+=g.attributes.position.count; return o; });
+    for(const p of panes){ p.start=starts[p.gi]; p.count=bins[k][p.gi].attributes.position.count; }
+    GLASS.mesh=mesh; GLASS.orig=merged.attributes.position.array.slice(); }
   staticGroup.add(mesh);
 }
 // devise sur le vitrage d'entrée
