@@ -14,5 +14,7 @@ Map 3D du lycée du Pays de Retz (Pornic), agrandie façon FPS, jouable en 1 con
 - Vitres cassables (fissures puis éclatement, réparées à chaque manche) ; rampes d'escalier solides.
 - Audio : pas différents selon le sol, sons étouffés derrière les murs, écho en intérieur.
 
-`index.html` est généré à partir de `src/` (head.html + map.js + game.js).
+**Version paintball :** https://agenceconfluence.github.io/LPR-FPS/paintball/ — mêmes règles, lanceurs de paintball (TPX, Etha 3, AMP, CS3 Pro, First Strike), billes .68 avec chute, éclaboussures persistantes sur les murs, sols, vitres et joueurs, grenade de peinture.
+
+`index.html` (Nerf) et `paintball/index.html` sont générés à partir de `src/` (head.html ou head_pb.html + map.js + game.js).
 HDRI « park » : Poly Haven, CC0, via @pmndrs/assets.
