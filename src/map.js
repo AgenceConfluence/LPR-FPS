@@ -448,7 +448,7 @@ const LV=[0,4,7.6], CE=[3.7,7.3,10.9], TOP=11.2;
   for(let i=0;i<5;i++){ infoRoom(xi[i],xi[i+1],-3,8,0); Z('Salle informatique',0,xi[i],xi[i+1],-3,8,'info'); F('linoB',xi[i],xi[i+1],-3,8,0); }
   F('linoC',65,128,8,11,0); lamps(65,128,8,11,yi,4); Z('Couloir — pôle multimédia',0,65,128,8,11,'circ');
   const xs=[94,102.5,111,119.5,128];
-  const sdoors=[D(70,71.2,0),D(78,79.2,0),D(89,90.4,0)];
+  const sdoors=[D(70,71.2,0),D(78,79.2,0),D(89,90.4,0),{a:80.12,b:82.88,lo:0,hi:3.0}];
   for(let i=0;i<4;i++) sdoors.push(D(xs[i]+0.5,xs[i]+1.6,0));
   wall('x',11,69,128,0,yi,.12,'white',sdoors,true);
   wall('z',69,11,18.6,0,yi,.12,'white'); wall('z',74.5,11,18.6,0,yi,.12,'white'); wall('z',80,11,18.6,0,yi,.12,'white');
@@ -794,13 +794,22 @@ function bin(X,L,Zw){ const g=new THREE.CylinderGeometry(.22,.19,.7,14,1,true); 
   }
   // couloir RDC
   for(let x=70;x<126;x+=7.6){ poster(x*S,1.6,8.06*S+0.012,0); if(CR()<.5) bag((x+2)*S,9.5*S,0); }
-  extinguisher(66*S,0,8*S+0.15); extinguisher(127*S,0,11*S-0.15); exitSign(64*S,2.6,11*S-0.1);
+  extinguisher(66*S,0,8*S+0.15); extinguisher(127*S,0,11*S-0.15); exitSign(72.5*S,2.6,11*S-0.1);
+  // passage hall → pôle multimédia : distributeurs, banc, panneau d'affichage
+  { const xw=80*S+0.07, z0=13*S; rawBox('red',xw,xw+0.85,0,1.85,z0,z0+0.95); rawBox('screen',xw+0.86,xw+0.88,0.8,1.6,z0+0.12,z0+0.62); rawBox('glass',xw+0.86,xw+0.89,0.75,1.7,z0+0.08,z0+0.68);
+    for(let k=0;k<4;k++) rawBox(['yellow','orange','teal','pink'][k],xw+0.7,xw+0.8,0.95+k*0.17,1.05+k*0.17,z0+0.15,z0+0.55);
+    rawBox('steel',xw+0.86,xw+0.9,0.25,0.45,z0+0.2,z0+0.6);
+    const z1=15.2*S; rawBox('blue',xw,xw+0.8,0,1.85,z1,z1+0.85); rawBox('glass',xw+0.81,xw+0.84,0.3,1.7,z1+0.06,z1+0.79);
+    for(let r2=0;r2<5;r2++) for(let c2=0;c2<3;c2++) rawBox(['red','yellow','lime','white','orange'][(r2+c2)%5],xw+0.55,xw+0.75,0.45+r2*0.27,0.6+r2*0.27,z1+0.12+c2*0.22,z1+0.26+c2*0.22); }
+  bench(82.4,15.5,0,2.2,false); bin(82.6*S,0,12.2*S);
+  { const xe=83*S-0.07; rawBox('cork',xe-0.03,xe,1.2,2.1,14.4*S-0.8,14.4*S+0.8); for(let k=0;k<6;k++){ const pz=14.4*S-0.65+CR()*1.2, py=1.3+CR()*0.6; rawBox(['white','cream','yellow','pink'][(CR()*4)|0],xe-0.036,xe-0.031,py,py+0.28,pz,pz+0.21); } }
+  for(const [x,z] of [[81.2,17.5],[82,12]]) bag(x*S,z*S,0);
   // préau : sacs autour des bancs, poubelles
   for(const [x,z] of [[66,33],[67,34.2],[78,32],[71,39],[64,25],[75.5,24.5],[79,36.8],[69,30]]) bag(x*S+(CR()-.5),z*S+(CR()-.5),0);
   bin(63*S,0,31*S); bin(82*S,0,26*S); bin(70*S,0,41.5*S);
   for(const [x,z] of [[63,20],[81,20],[63,40],[81,40]]) bag(x*S,z*S,4);
   // hall
-  poster(83*S+0.1,1.6,24*S,2); poster(83*S+0.1,1.6,26*S,2); exitSign(94*S-0.1,2.9,27.5*S,false);
+  poster(83.9*S,1.6,18.66*S+0.012,0); poster(87.45*S,1.6,18.66*S+0.012,0); exitSign(94*S-0.1,2.9,27.5*S,false);
   // self : bacs du self et piles de plateaux
   obj(()=>{ for(let x=18.4;x<32.6;x+=1.0){ B(['orange','lime','yellow','trunk','red','cream'][Math.floor(x)%6],x,x+0.8,0.9,0.95,9.2,9.75,false); } });
   for(let i=0;i<14;i++) rawBox(i%2?'tray':'trayB',16*S,16*S+0.46,0.0+i*0.03,0.02+i*0.03,10*S,10*S+0.34);

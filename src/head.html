@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Lycée FPS — 1v1 blasters mousse</title>
 <style>
+  :root{--acc:#9ccc3c}
   html,body{margin:0;height:100%;overflow:hidden;background:#1b2420;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#fff;user-select:none}
   #c{position:fixed;inset:0;width:100%;height:100%;display:block}
   .hud{position:fixed;z-index:5;pointer-events:none}
@@ -32,26 +33,55 @@
   #msg{top:28%;left:50%;transform:translateX(-50%);font-size:34px;font-weight:800;text-align:center;text-shadow:0 3px 10px rgba(0,0,0,.7)}
   #msg small{display:block;font-size:17px;font-weight:600;opacity:.9;margin-top:6px}
   #dmg{inset:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(220,40,30,.55));opacity:0;transition:opacity .4s}
-  #lobby{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:rgba(14,22,18,.72);backdrop-filter:blur(4px)}
-  #card{background:#fff;color:#1d2a22;border-radius:16px;padding:26px 28px;width:min(460px,90vw);box-shadow:0 10px 40px rgba(0,0,0,.4)}
-  #card h1{margin:0;font-size:24px}
-  #card .sub{color:#5b8c1e;font-weight:700;margin:2px 0 16px}
-  #card button{font:inherit;font-size:17px;font-weight:700;border:0;border-radius:10px;padding:13px 16px;width:100%;cursor:pointer;margin-top:8px}
-  .primary{background:#8cc63f;color:#fff}.ghost{background:#eef1ec;color:#1d2a22}
-  #card .link{display:flex;gap:6px;margin-top:10px}
-  #card input{flex:1;font:inherit;font-size:13px;padding:10px;border:1px solid #cfd6cb;border-radius:8px}
-  #card .link button{width:auto;margin:0;font-size:14px;padding:10px 14px}
-  #card .st{margin-top:12px;font-size:14px;color:#4b5a50;min-height:20px}
-  #card ul{padding-left:18px;margin:14px 0 0;font-size:13.5px;color:#4b5a50;line-height:1.6}
-  #card kbd{background:#eef0ec;border-radius:4px;padding:0 5px;border:1px solid #d7dbd4;font-family:inherit}
-  #pause{position:fixed;inset:0;z-index:9;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.45)}
-  #pbox{background:rgba(22,30,26,.96);border-radius:14px;padding:20px 24px;width:min(420px,92vw);box-shadow:0 10px 40px rgba(0,0,0,.5)}
-  #pbox h2{margin:0 0 14px;font-size:22px}
-  #pbox .row{display:flex;align-items:center;gap:10px;margin:10px 0;font-size:14px}
-  #pbox .row label{width:110px;opacity:.85}#pbox .row input{flex:1}#pbox .row span{width:52px;text-align:right;font-variant-numeric:tabular-nums}
-  #qual{display:flex;gap:6px;flex:1}#qual button{flex:1;font:inherit;font-size:13px;border:0;border-radius:7px;padding:7px;background:#3b4a42;color:#fff;cursor:pointer}#qual button.on{background:#8cc63f}
-  #resume{margin-top:14px;width:100%;font:inherit;font-size:17px;font-weight:700;border:0;border-radius:10px;padding:12px;background:#8cc63f;color:#fff;cursor:pointer}
-  #pbox .keys{font-size:12px;opacity:.65;margin-top:12px;line-height:1.6}
+  body.inlobby .hud{display:none!important}
+  #lobby{position:fixed;inset:0;z-index:10;background:linear-gradient(90deg,rgba(8,14,11,.92) 0,rgba(8,14,11,.72) 34%,rgba(8,14,11,0) 62%)}
+  .lob{position:absolute;left:5vw;top:50%;transform:translateY(-50%);width:min(440px,90vw)}
+  .brand .kick{font-size:12px;letter-spacing:.18em;color:#b6e36b;font-weight:700}
+  .brand h1{margin:6px 0 4px;font-size:46px;line-height:1;font-weight:900;letter-spacing:-.02em;text-shadow:0 4px 20px rgba(0,0,0,.5)}
+  .brand h1 em{font-style:normal;color:var(--acc)}
+  .brand .tag{opacity:.75;font-size:15px;margin-bottom:22px}
+  .lsec{display:flex;flex-direction:column;gap:9px}.lsec[hidden]{display:none}
+  .big{font:inherit;display:block;width:100%;text-align:left;border:0;border-radius:12px;padding:13px 16px;font-size:17px;font-weight:700;color:#fff;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.12);cursor:pointer;transition:transform .08s,background .15s}
+  .big:hover{background:rgba(255,255,255,.17);transform:translateX(3px)}.big small{display:block;font-size:12.5px;font-weight:500;opacity:.7;margin-top:2px}
+  .big.primary{background:var(--acc);border-color:transparent;color:#11170f}.big.primary:hover{filter:brightness(1.08)}.big:disabled{opacity:.5;cursor:default;transform:none}
+  .big.ghost{background:transparent}.big.danger{background:rgba(220,60,50,.25)}
+  .row2{display:flex;gap:8px}.row2 .big{text-align:center}
+  .lab{font-size:13px;letter-spacing:.06em;text-transform:uppercase;opacity:.7;font-weight:700}
+  .modes{display:flex;flex-direction:column;gap:8px}
+  .mode{font:inherit;text-align:left;color:#fff;background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.12);border-radius:12px;padding:11px 14px;cursor:pointer}
+  .mode b{font-size:16px}.mode span{display:block;font-size:13px;opacity:.75;margin-top:2px}.mode.on{border-color:var(--acc);background:rgba(255,255,255,.13)}
+  .link{display:flex;gap:6px}.link input{flex:1;font:inherit;font-size:13px;padding:11px;border-radius:9px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.35);color:#fff}
+  .link button{font:inherit;font-weight:700;border:0;border-radius:9px;padding:0 16px;background:var(--acc);color:#11170f;cursor:pointer}
+  .pill{align-self:flex-start;background:rgba(255,255,255,.12);border-radius:20px;padding:5px 12px;font-size:13px;font-weight:600}.pill:empty{display:none}
+  .wait{display:flex;align-items:center;gap:10px;font-size:14px;opacity:.85}.dot{width:10px;height:10px;border-radius:50%;background:var(--acc);animation:pul 1.2s infinite}
+  @keyframes pul{50%{opacity:.25;transform:scale(.7)}}
+  .st{margin-top:12px;font-size:14px;opacity:.85;min-height:18px}
+  .keys{margin-top:14px;font-size:12.5px;opacity:.6;line-height:1.7}.keys kbd,.kbd{display:inline-block;min-width:16px;text-align:center;background:rgba(255,255,255,.14);border-radius:5px;padding:0 6px;font-family:inherit;font-weight:700;margin:0 1px}
+  #pause,#settings{position:fixed;inset:0;z-index:11;display:none;align-items:center;justify-content:center;background:rgba(5,9,7,.55);backdrop-filter:blur(3px)}
+  #settings{z-index:12}
+  .panel{background:rgba(20,28,24,.97);border:1px solid rgba(255,255,255,.1);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .pbox{width:min(360px,92vw);padding:22px;display:flex;flex-direction:column;gap:9px}.ptitle{font-size:26px;font-weight:900;margin-bottom:6px}
+  .sbox{width:min(620px,94vw);max-height:86vh;overflow:auto;padding:16px 22px 22px}
+  .tabs{display:flex;gap:6px;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:10px;margin-bottom:8px}
+  .tabs button{font:inherit;font-weight:700;border:0;background:transparent;color:#fff;opacity:.6;padding:8px 12px;border-radius:8px;cursor:pointer}.tabs button.on{opacity:1;background:rgba(255,255,255,.1)}
+  .tabs .x{margin-left:auto;opacity:.8}
+  .sbox .row{display:flex;align-items:center;gap:12px;margin:12px 0;font-size:14px}.sbox .row label{width:170px;opacity:.85}.sbox .row input[type=range]{flex:1}.sbox .row>span{width:56px;text-align:right;font-variant-numeric:tabular-nums}
+  .seg{display:flex;gap:6px;flex:1}.seg button{flex:1;font:inherit;font-size:13px;border:0;border-radius:8px;padding:8px;background:#34423b;color:#fff;cursor:pointer}.seg button.on{background:var(--acc);color:#11170f;font-weight:700}
+  #binds{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px}
+  .bind{display:flex;align-items:center;justify-content:space-between;font-size:14px;padding:4px 0}
+  .bind button{font:inherit;font-weight:800;min-width:74px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer}
+  .bind button.wait{background:var(--acc);color:#11170f}
+  .small{font:inherit;font-size:13px;border:0;border-radius:8px;padding:8px 12px;background:#34423b;color:#fff;cursor:pointer}
+  .hint{font-size:12.5px;opacity:.65}.sbox .row>span.hint{width:auto;flex:1;text-align:left}
+  #voice{bottom:150px;left:268px;font-size:13px;display:flex;gap:8px}#voice span{background:rgba(0,0,0,.5);border-radius:14px;padding:3px 10px}
+  body.anim .hud:not(#paintres):not(#score){display:none!important}
+  .pct small{display:block;font-size:14px;font-weight:600;opacity:.85}
+  #paintres{inset:0;display:none;align-items:flex-end;justify-content:center;padding-bottom:9vh}
+  .pr{width:min(640px,90vw);text-align:center}.pr h2{font-size:38px;margin:0 0 12px;text-shadow:0 3px 12px rgba(0,0,0,.6)}
+  .gauge{position:relative;height:34px;border-radius:17px;background:rgba(0,0,0,.55);overflow:hidden;border:2px solid rgba(255,255,255,.6)}
+  .gauge i{position:absolute;top:0;bottom:0;transition:width .1s linear}.gauge .ga{left:0}.gauge .gb{right:0}
+  .pct{display:flex;justify-content:space-between;font-size:30px;font-weight:900;margin-top:8px;text-shadow:0 2px 8px rgba(0,0,0,.6)}
+  #slowfx{inset:0;opacity:0;box-shadow:inset 0 0 120px 40px var(--c,#ff2d95);transition:opacity .5s}
   #load{display:none}
   #money{bottom:62px;right:22px;font-size:20px;font-weight:800;color:#b6e36b;text-shadow:0 2px 4px rgba(0,0,0,.6)}
   #nades{bottom:120px;right:22px;font-size:20px;display:flex;gap:8px}#nades span{background:rgba(0,0,0,.45);border-radius:6px;padding:2px 6px}#nades small{font-size:10px;opacity:.7;margin-left:3px}
@@ -74,7 +104,6 @@
   .item .st{display:block;font-size:12px;opacity:.75;margin-top:6px}.item .k{position:absolute;right:12px;bottom:8px;font-size:11px;opacity:.5}
   .item.poor{opacity:.45}.item.owned{border-color:#2a7fd4}
   #shopClose{margin-top:12px;font:inherit;border:0;border-radius:8px;padding:8px 14px;background:#3b4a42;color:#fff;cursor:pointer}
-  #card .sens{display:flex;align-items:center;gap:8px;font-size:13px;margin-top:10px;color:#4b5a50}
 </style>
 </head>
 <body>
@@ -94,36 +123,62 @@
 <div id="nades" class="hud"></div>
 <div id="flashov" class="hud"></div>
 <div id="splatov" class="hud"></div>
+<div id="slowfx" class="hud"></div>
+<div id="voice" class="hud"></div>
+<div id="paintres" class="hud"><div class="pr"><h2 id="prTitle">Territoire</h2><div class="gauge"><i class="ga" id="gA"></i><i class="gb" id="gB"></i></div><div class="pct"><span id="pA">0 %</span><span id="pB">0 %</span></div></div></div>
 <div id="buyHint" class="hud">B : boutique</div>
 <div id="feed" class="hud"></div>
 <div id="scope" class="hud"></div>
 <div id="shop"><div id="shopBox"><h2>Boutique <span id="shopMoney">800 €</span></h2><div id="shopItems"></div><button id="shopClose">Fermer (B)</button></div></div>
-<div id="pause"><div id="pbox"><h2>Pause</h2>
-  <div class="row"><label>Sensibilité</label><input type="range" id="sens2" min="0.2" max="3" step="0.05"><span id="sens2V"></span></div>
-  <div class="row"><label>Volume</label><input type="range" id="vol2" min="0" max="1" step="0.05"><span id="vol2V"></span></div>
-  <div class="row"><label>Champ de vision</label><input type="range" id="fov2" min="65" max="105" step="1"><span id="fov2V"></span></div>
-  <div class="row"><label>Qualité</label><div id="qual"><button data-q="basse">Basse</button><button data-q="normale">Normale</button><button data-q="haute">Haute</button></div></div>
-  <button id="resume">Reprendre</button>
-  <div class="keys">ZQSD bouger · Maj courir · C s'accroupir (silencieux) · Espace sauter · clic droit lunette · R recharger · 1/2 armes · 3/4/5 grenades (G : rapide) · B boutique</div>
+<div id="pause"><div class="panel pbox">
+  <div class="ptitle">Pause</div>
+  <button class="big primary" id="resume">▶ Reprendre</button>
+  <button class="big" data-open="jeu">⚙ Réglages</button>
+  <button class="big" data-open="touches">⌨ Commandes</button>
+  <button class="big" data-open="son">🎙 Son &amp; chat vocal</button>
+  <button class="big danger" id="quit">⏏ Quitter la partie</button>
 </div></div>
-<div id="lobby"><div id="card">
-  <h1>Lycée du Pays de Retz</h1>
-  <div class="sub">1v1 · blasters en mousse · premier à 5 manches</div>
-  <div id="lobbyMain">
-    <button class="primary" id="bHost" disabled>Créer une partie</button>
-    <button class="ghost" id="bSolo" disabled>S'entraîner seul</button>
+<div id="settings"><div class="panel sbox">
+  <div class="tabs"><button data-tab="jeu" class="on">Jeu</button><button data-tab="touches">Commandes</button><button data-tab="son">Son &amp; voix</button><button class="x" id="setClose" title="Fermer">✕</button></div>
+  <div class="tab" id="tab-jeu">
+    <div class="row"><label>Sensibilité souris</label><input type="range" id="sens2" min="0.2" max="3" step="0.05"><span id="sens2V"></span></div>
+    <div class="row"><label>Champ de vision</label><input type="range" id="fov2" min="65" max="105" step="1"><span id="fov2V"></span></div>
+    <div class="row"><label>Qualité graphique</label><div class="seg" id="qual"><button data-q="basse">Basse</button><button data-q="normale">Normale</button><button data-q="haute">Haute</button></div></div>
   </div>
-  <div id="lobbyLink" style="display:none">
-    <div style="font-size:14px">Envoie ce lien à ton adversaire :</div>
+  <div class="tab" id="tab-touches" hidden><div id="binds"></div><div class="row"><button class="small" id="bindReset">Réinitialiser les touches</button><span class="hint">Clique une touche puis appuie sur la nouvelle · Échap annule</span></div></div>
+  <div class="tab" id="tab-son" hidden>
+    <div class="row"><label>Volume général</label><input type="range" id="vol2" min="0" max="1" step="0.05"><span id="vol2V"></span></div>
+    <div class="row"><label>Chat vocal de proximité</label><div class="seg" id="vOn"><button data-v="1">Activé</button><button data-v="0">Coupé</button></div></div>
+    <div class="row"><label>Micro</label><div class="seg" id="vMode"><button data-m="ptt">Appuyer pour parler</button><button data-m="open">Micro ouvert</button></div></div>
+    <div class="row"><label>Volume des voix</label><input type="range" id="vvol" min="0" max="2" step="0.05"><span id="vvolV"></span></div>
+    <div class="hint" id="vStat">La voix de ton adversaire vient de sa position : plus il est loin, moins tu l'entends, et elle est étouffée derrière les murs.</div>
+  </div>
+</div></div>
+<div id="lobby"><div class="lob">
+  <div class="brand"><div class="kick">LYCÉE DU PAYS DE RETZ · PORNIC</div><h1>__TITLE__</h1><div class="tag">__TAG__</div></div>
+  <div id="lMain" class="lsec">
+    <button class="big primary" id="bHost" disabled>▶ Jouer en ligne<small>crée un lien à envoyer à ton adversaire</small></button>
+    <button class="big" id="bSolo" disabled>🎯 Entraînement<small>seul, pour explorer la map et tester les armes</small></button>
+    <button class="big" data-open="jeu">⚙ Réglages &amp; commandes<small>sensibilité, touches, chat vocal</small></button>
+  </div>
+  <div id="lMode" class="lsec" hidden>
+    <div class="lab">Choisis le mode de jeu</div>
+    <div class="modes" id="modes"></div>
+    <div class="row2"><button class="big ghost" id="bBack">← Retour</button><button class="big primary" id="bCreate">Créer la partie</button></div>
+  </div>
+  <div id="lLink" class="lsec" hidden>
+    <div class="lab">Envoie ce lien à ton adversaire</div>
     <div class="link"><input id="lnk" readonly><button class="primary" id="bCopy">Copier</button></div>
+    <div class="pill" id="hostMode"></div>
+    <div class="wait"><span class="dot"></span>En attente de ton adversaire… garde cette page ouverte</div>
+  </div>
+  <div id="lJoin" class="lsec" hidden>
+    <div class="lab" id="joinTitle">Connexion à la partie…</div>
+    <div class="pill" id="joinMode"></div>
+    <button class="big primary" id="bEnter" disabled>Connexion…</button>
   </div>
   <div class="st" id="st">Chargement de la map…</div>
-  <div class="sens">Sensibilité souris <input type="range" id="sens" min="0.2" max="3" step="0.05" value="1" style="flex:1"><span id="sensV">1.00</span></div>
-  <ul>
-    <li><kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd> se déplacer · <kbd>Maj</kbd> courir · <kbd>C</kbd> s'accroupir · <kbd>Espace</kbd> sauter</li>
-    <li>Clic gauche tirer · clic droit lunette · <kbd>R</kbd> recharger · <kbd>1</kbd><kbd>2</kbd>/molette changer d'arme</li><li><kbd>B</kbd> boutique · <kbd>3</kbd><kbd>4</kbd><kbd>5</kbd> grenade, flash, fumigène (clic gauche lancer loin, clic droit lober) · <kbd>Échap</kbd> pause</li>
-    <li>Le premier qui touche l'autre jusqu'à 0 PV gagne la manche.</li>
-  </ul>
+  <div class="keys" id="keysHint"></div>
 </div></div>
 <div id="load"></div>
 
