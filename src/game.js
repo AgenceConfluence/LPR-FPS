@@ -769,6 +769,7 @@ function voiceInfo(){ const me={ok:'micro OK',denied:'micro refusé ou absent',p
   if(p){ them=!p.on?'adversaire : chat vocal coupé chez lui':p.mic==='denied'?'adversaire : micro refusé ou absent (il doit l’autoriser dans son navigateur, icône 🔒 de la barre d’adresse)':p.mic==='pending'?'adversaire : n’a pas encore accepté le micro':p.mic==='ok'?('adversaire : micro OK'+(p.ptt?' · il doit maintenir '+keyLabel(BIND.talk)+' pour parler':' · micro ouvert')):'adversaire : micro pas encore demandé'; }
   const link=mode!=='net'?'':VOICE.gotStream?'liaison voix établie':'liaison voix en cours…';
   const el=$('vStat'); if(el) el.innerHTML=`Toi : ${me}${VOICE.ptt&&VOICE.mic==='ok'?' · maintiens <b>'+keyLabel(BIND.talk)+'</b> pour parler':''}<br>${them}${link?'<br>'+link:''}`; }
+const _lf=new THREE.Vector3();
 function updVoice(dt){ gateMic();
   if(VOICE.lan){ VOICE.lvl=rms(VOICE.lan,VOICE.lbuf); const m=$('vMeter'); if(m) m.style.width=Math.min(100,VOICE.lvl*900)+'%'; }
   if(mode==='net'&&net.ready){ const s=voiceState(), k=JSON.stringify(s); if(k!==VOICE.sent){ VOICE.sent=k; net.send('vs',s); } VOICE.callT+=dt;
@@ -1072,7 +1073,7 @@ function update(dt){
     const gap=Math.round(Math.min(46,3+spr*innerHeight/(2*Math.tan(camera.fov*Math.PI/360))));
     if(gap!==lastGap){ $('cross').style.setProperty('--g',gap+'px'); lastGap=gap; } }
   P.slowT=Math.max(0,(P.slowT||0)-dt); { const op=P.slowT>0?Math.min(0.8,P.slowT):0; if(op!==lastSlow){ $('slowfx').style.setProperty('--c',COL[enemy.side]); $('slowfx').style.opacity=op; lastSlow=op; } }
-  if(mode==='net'){ if(G.mode==='paint'){ paintFlushT-=dt; if(paintFlushT<=0){ paintFlushT=0.25; flushPaint(); } } updVoice(dt); }
+  if(mode==='net'){ if(G.mode==='paint'){ paintFlushT-=dt; if(paintFlushT<=0){ paintFlushT=0.25; flushPaint(); } } try{ updVoice(dt); }catch(e){ if((VOICE.err=(VOICE.err||0)+1)<4) console.error('voix',e); } }
   else if(VOICE.lan){ VOICE.lvl=rms(VOICE.lan,VOICE.lbuf); const m=$('vMeter'); if(m) m.style.width=Math.min(100,VOICE.lvl*900)+'%'; VOICE.infoT=(VOICE.infoT||0)-dt; if(VOICE.infoT<=0){ VOICE.infoT=0.5; voiceInfo(); } }
   updPaintAnim(dt);
   updDarts(dt); updShards(dt); updNades(dt); hud(dt);
@@ -1118,7 +1119,7 @@ bindRange('vvol',VOICE.vol,v=>Math.round(v*100)+' %',v=>{ VOICE.vol=v; if(VOICE.
 $('resume').onclick=()=>{ audio(); lock(); };
 respawn();
 window.__G=G; window.__P=P; window.__net=net; window.__sim=(code,secs)=>{ keys[code]=true; if(code==='KeyW'&&BIND.fwd!=='KeyW') keys[BIND.fwd]=true; for(let i=0;i<secs*60;i++) update(1/60); keys[code]=false; };
-window.__fire=()=>fire(); window.__SPL=SPL; window.__splatCount=()=>SPL.A.reduce((s,p)=>s+p.n,0)+SPL.B.reduce((s,p)=>s+p.n,0); window.__throw=(k,p)=>{ P.nades[k]=Math.max(1,P.nades[k]); selectNade(k); P.deployT=0; P.cool=0; throwNade(p||1); }; window.__nades=nades; window.__smokes=smokes; window.__panes=panes; window.__breakPane=breakPane; window.__stuck=stuck; window.__flying=flying; window.__enemy=enemy; window.__buy=buy; window.__shop=openShop; window.__mkAv=(x,z,yaw,w,side)=>{ const a=makeAvatar(COL[side||'B']); a.position.set(x,0,z); a.rotation.y=yaw; scene.add(a); a.userData.tw=w||'m4'; return a; }; window.__animAv=(a,dt,st)=>animAvatar(a,dt,Object.assign({vx:0,vz:0,pitch:0,crouch:false,alive:true,w:a.userData.tw},st||{})); window.__RIG=()=>!!RIG; window.__S=S; window.__upd=(s)=>{ for(let i=0;i<s*60;i++) update(1/60); };
+window.__fire=()=>fire(); window.__SPL=SPL; window.__splatCount=()=>SPL.A.reduce((s,p)=>s+p.n,0)+SPL.B.reduce((s,p)=>s+p.n,0); window.__throw=(k,p)=>{ P.nades[k]=Math.max(1,P.nades[k]); selectNade(k); P.deployT=0; P.cool=0; throwNade(p||1); }; window.__nades=nades; window.__smokes=smokes; window.__panes=panes; window.__breakPane=breakPane; window.__stuck=stuck; window.__flying=flying; window.__enemy=enemy; window.__buy=buy; window.__shop=openShop; window.__fakeVoice=()=>{ attachRemote(silentStream()); VOICE.gotStream=true; }; window.__mkAv=(x,z,yaw,w,side)=>{ const a=makeAvatar(COL[side||'B']); a.position.set(x,0,z); a.rotation.y=yaw; scene.add(a); a.userData.tw=w||'m4'; return a; }; window.__animAv=(a,dt,st)=>animAvatar(a,dt,Object.assign({vx:0,vz:0,pitch:0,crouch:false,alive:true,w:a.userData.tw},st||{})); window.__RIG=()=>!!RIG; window.__S=S; window.__upd=(s)=>{ for(let i=0;i<s*60;i++) update(1/60); };
 window.__info=()=>({calls:renderer.info.render.calls,tris:renderer.info.render.triangles,geo:renderer.info.memory.geometries});
 window.__ready=true;
 document.body.classList.add('inlobby'); $('bHost').disabled=false; $('bSolo').disabled=false; status(''); renderHints(); renderBinds();
