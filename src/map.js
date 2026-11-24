@@ -106,8 +106,47 @@ const MAT = {
   poster:M({roughness:.7}), bin:M({color:'#3e6b4a',roughness:.6}),
 };
 MAT.glassR=MAT.glass;
+{ const fab=canvasTex(128,(g,s)=>{ g.fillStyle='#808080'; g.fillRect(0,0,s,s); const r=rng(9); for(let y=0;y<s;y+=2){ g.fillStyle=`rgba(0,0,0,${0.08+r()*0.06})`; g.fillRect(0,y,s,1); } for(let x=0;x<s;x+=2){ g.fillStyle=`rgba(255,255,255,${0.05+r()*0.05})`; g.fillRect(x,0,1,s); } for(let i=0;i<400;i++){ g.fillStyle=`rgba(0,0,0,${r()*0.08})`; g.fillRect(r()*s,r()*s,2,2); } });
+  MAT.blue.map=fab; MAT.blue.color.set('#5a8fd6'); MAT.blue.roughness=.95; MAT.blue.normalMap=normalFrom(fab,1.2); TXS.blue=0.25; }
 for(const k in NRM){ if(MAT[k]&&MAT[k].map){ MAT[k].normalMap=normalFrom(MAT[k].map,NRM[k]); MAT[k].normalScale=new THREE.Vector2(1,1); } }
-const OWNUV=new Set(['poster','writing','plate','clock','menu','sign','cork']);
+// ---------- textures photo CC0 (ambientCG) : remplacent progressivement les textures procédurales ----------
+const ASSETS=(window.THEME==='paintball'?'../':'')+'assets/';
+const TL=new THREE.TextureLoader();
+const PHOTO={ grass:['Grass001',2.6,1], pave:['PavingStones028',2.4,1,'#f2eee6'], conc:['Concrete034',3.2,2], mineral:['Terrazzo012',1.0,1,'#f4f2ee'],
+  tiles:['Tiles062',1.6,1], wood:['Planks032',2.2,1,'#e6d2b8'], asph:['Asphalt025A',3,1] };
+function photoTex(name,cb){ let n=0; const out={};
+  for(const k of ['Color','NormalGL']) TL.load(ASSETS+'tex/'+name+'_'+k+'.jpg',t=>{ t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=renderer.capabilities.getMaxAnisotropy(); if(k==='Color') t.colorSpace=THREE.SRGBColorSpace; out[k]=t; if(++n===2) cb(out.Color,out.NormalGL); },undefined,()=>{}); }
+for(const k in PHOTO){ if(k==='grass') continue; TXS[k]=PHOTO[k][1]; const [name,,ar,tint]=PHOTO[k];
+  photoTex(name,(c,nm)=>{ const mt=MAT[k]; c.repeat.set(1,ar); nm.repeat.set(1,ar); mt.map=c; mt.normalMap=nm; mt.normalScale=new THREE.Vector2(1,1); if(tint) mt.color.set(tint); mt.needsUpdate=true; }); }
+// casse la répétition visible : on mélange la texture à deux échelles + variation lente de teinte
+function antiTile(mt,amt=0.45){ mt.onBeforeCompile=sh=>{ sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>',`
+  #ifdef USE_MAP
+    vec4 ta=texture2D(map,vMapUv); vec4 tb=texture2D(map,vMapUv*0.317+vec2(0.37,0.71));
+    float nz=sin(vMapUv.x*0.21)*sin(vMapUv.y*0.17+1.3)*0.5+sin(vMapUv.x*0.053+2.)*sin(vMapUv.y*0.061)*0.5;
+    vec4 sampledDiffuseColor=mix(ta,tb,${amt.toFixed(2)})*(1.0+nz*0.16);
+    diffuseColor*=sampledDiffuseColor;
+  #endif`); }; mt.customProgramCacheKey=()=>'antiTile'+amt; }
+antiTile(MAT.pave,0.3); antiTile(MAT.asph,0.4);
+// ---------- feuillage : cartes de feuilles en alpha (fini les boules low-poly) ----------
+const leafTex=canvasTex(512,(g,s)=>{ g.clearRect(0,0,s,s); const r=rng(77);
+  g.strokeStyle='rgba(70,52,30,.9)'; g.lineWidth=3; for(let i=0;i<9;i++){ g.beginPath(); const x=s/2+(r()-.5)*s*.3, y=s*.95; g.moveTo(x,y); g.quadraticCurveTo(x+(r()-.5)*s*.5,y-s*.4,s*(.1+r()*.8),s*(.08+r()*.5)); g.stroke(); }
+  for(let i=0;i<520;i++){ const a=r()*Math.PI*2, d=Math.sqrt(r())*s*.46; const x=s/2+Math.cos(a)*d, y=s*.48+Math.sin(a)*d*.95; const L=s*(.035+r()*.03);
+    const h=95+r()*35, l=20+r()*22+(y<s*.4?8:0); g.save(); g.translate(x,y); g.rotate(r()*Math.PI*2);
+    g.fillStyle=`hsl(${h},${38+r()*25}%,${l}%)`; g.beginPath(); g.ellipse(0,0,L,L*.45,0,0,Math.PI*2); g.fill();
+    g.strokeStyle=`hsla(${h},40%,${l+12}%,.6)`; g.lineWidth=1; g.beginPath(); g.moveTo(-L*.9,0); g.lineTo(L*.9,0); g.stroke(); g.restore(); } });
+leafTex.colorSpace=THREE.SRGBColorSpace;
+MAT.leaf=new THREE.MeshStandardMaterial({map:leafTex,alphaTest:.5,side:THREE.DoubleSide,roughness:.75});
+const barkTex=canvasTex(256,(g,s)=>{ g.fillStyle='#5b4a3a'; g.fillRect(0,0,s,s); const r=rng(5); for(let i=0;i<700;i++){ g.fillStyle=r()<.5?'rgba(30,22,16,.35)':'rgba(140,125,105,.25)'; g.fillRect(r()*s,r()*s,1+r()*3,8+r()*40); } });
+MAT.bark=new THREE.MeshStandardMaterial({map:barkTex,roughness:.95}); MAT.bark.normalMap=normalFrom(barkTex,3);
+// nuage de cartes de feuilles dans un ellipsoïde, normales radiales pour un ombrage "volumique"
+function leafCards(cx,cy,cz,rx,ry,rz,n,size,seed){ const r=rng(seed); const gs=[]; const e=new THREE.Euler(), q=new THREE.Quaternion();
+  for(let i=0;i<n;i++){ const p=new THREE.PlaneGeometry(size*(0.8+r()*0.5),size*(0.8+r()*0.5)); e.set(r()*Math.PI,r()*Math.PI*2,r()*Math.PI); p.applyQuaternion(q.setFromEuler(e));
+    let x,y,z; do{ x=r()*2-1; y=r()*2-1; z=r()*2-1; }while(x*x+y*y+z*z>1); const d=0.55+0.45*Math.sqrt(x*x+y*y+z*z);
+    p.translate(cx+x*rx*d,cy+y*ry*d,cz+z*rz*d);
+    const pos=p.attributes.position, nor=p.attributes.normal; for(let k=0;k<pos.count;k++){ const v=new THREE.Vector3(pos.getX(k)-cx,(pos.getY(k)-cy)*0.8+ry*0.35,pos.getZ(k)-cz).normalize(); nor.setXYZ(k,v.x,v.y,v.z); }
+    gs.push(p); }
+  return mergeGeometries(gs,false); }
+const OWNUV=new Set(['leaf','poster','writing','plate','clock','menu','sign','cork']);
 // ---------- écritures : tableaux, plaques, horloge, menu ----------
 const HANDF="'Segoe Print','Bradley Hand','Comic Sans MS','Chalkboard SE','Marker Felt',cursive";
 function hand(g,txt,x,y,size,col,r){ g.fillStyle=col; let cx=x; for(const ch of txt){ const sz=size*(0.92+r()*0.16); g.font=`600 ${sz}px ${HANDF}`; g.save(); g.translate(cx,y+(r()-.5)*size*0.12); g.rotate((r()-.5)*0.12); g.fillText(ch,0,0); g.restore(); cx+=g.measureText(ch).width*0.98; } return cx; }
@@ -358,7 +397,10 @@ function tray(X,Zw,y,r=CR){ const yaw=(r()-.5)*0.6; _e.set(0,yaw,0); _q.setFromE
   const bo=new THREE.CylinderGeometry(.045,.04,.04,12); bo.translate(.14,.04,-.08); bo.applyMatrix4(_m4); addRaw(r()<.5?'white':'yellow',bo);
   part('cream',.08,.04,.06,.06,.04,-.1,_m4); part('steel',.012,.006,.17,.2,.025,-.02,_m4); part('steel',.012,.006,.15,.22,.025,-.02,_m4); }
 function bench(x,z,L,len=2.2,alongX=true){ if(alongX) B('dark',x-len/2,x+len/2,L,L+.45,z-.25,z+.25); else B('dark',x-.25,x+.25,L,L+.45,z-len/2,z+len/2); }
-function plantBlob(x,z,y,s,mat='plant'){ const g=new THREE.IcosahedronGeometry(s,0); g.scale(1,1.2,1); g.translate(x,y+s,z); addG(mat,g); }
+function theaterSeat(xc,zc,h){ obj(()=>{ const bx=(mt,x0,x1,y0,y1,z0,z1)=>{ const cx=(x0+x1)/2, cz=(z0+z1)/2, hx=(x1-x0)/2, hz=(z1-z0)/2; B(mt,xc+cx/S-hx,xc+cx/S+hx,h+y0,h+y1,zc+cz/S-hz,zc+cz/S+hz,false); };
+  bx('blue',-0.24,0.2,0.38,0.47,-0.23,0.23); bx('dark',-0.18,0.16,0.3,0.38,-0.2,0.2); bx('blue',0.2,0.29,0.44,1.0,-0.23,0.23); bx('dark',0.29,0.31,0.46,0.97,-0.22,0.22);
+  bx('dark',-0.16,0.26,0.6,0.645,0.25,0.3); bx('dark',0.05,0.11,0,0.6,0.26,0.29); }); }
+function plantBlob(x,z,y,s,mat='plant'){ const seed=Math.round(x*131+z*71+y*13); addG('leaf',leafCards(x,y+s*0.9,z,s,s*1.1,s,Math.round(8+s*s*26),Math.max(0.35,s*0.75),seed)); }
 function planter(x0,x1,z0,z1,L){ B('dark',x0,x1,L,L+.5,z0,z1); const r=rng(Math.round(x0*31+z0*17));
   for(let i=0;i<(x1-x0)*(z1-z0)*1.1;i++){ plantBlob(x0+.3+r()*(x1-x0-.6),z0+.3+r()*(z1-z0-.6),L+.4,.35+r()*.6,r()<.5?'plant':'plant2'); } }
 function wcRoom(x0,x1,z0,z1,L){ const n=Math.floor((x1-x0-0.4)/1.2);
@@ -640,7 +682,7 @@ const HOLE1=[[129.6,134,8-4.76,8]], HOLE2=[[129.6,134,8-4.48,8],[4,8.4,12,12+4.4
   wall('x',52,94,107,0,yi,.12,'white',[D(95,96.2,0)],true);
   F('linoC',94,99,38,52,0);
   for(let k=0;k<7;k++){ const xa=99+k*0.95, xb=k===6?107:xa+0.95, h=(k+1)*0.18; B('linoC',xa,xb,0,h,38.1,51.9);
-    for(let z=38.8;z<51.4;z+=0.62){ B('blue',xa+0.35,xa+0.82,h,h+0.44,z-.24,z+.24,false); B('blue',xa+0.78,xa+0.86,h+0.44,h+0.95,z-.24,z+.24,false); } }
+    for(let z=38.8;z<51.4;z+=0.62) theaterSeat(xa+0.55,z,h); }
   B('white',94.1,94.14,0.9,3.3,41,49,false); B('dark',95,97.5,0,.75,43,45);
   for(let z=39;z<52;z+=2.6) lamp(101,z,yi,.4);
   Z('Salle polyvalente (amphithéâtre)',0,94,107,38,52,'poly');
@@ -848,14 +890,20 @@ for(const k in bins){
 
 // sol + étang + ciel
 const grassMat=M({map:TX.grass.clone()}); grassMat.map.needsUpdate=true; grassMat.map.repeat.set(140,140); grassMat.normalMap=normalFrom(TX.grass,1.4); grassMat.normalMap.repeat.set(140,140);
+antiTile(grassMat,0.5);
+photoTex('Grass001',(c,nm)=>{ const r=1100/PHOTO.grass[1]; c.repeat.set(r,r); nm.repeat.set(r,r); grassMat.map=c; grassMat.normalMap=nm; grassMat.color.set('#c9d2b0'); grassMat.needsUpdate=true; });
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(1100,1100),grassMat); ground.rotation.x=-Math.PI/2; ground.position.set(60*S,-0.03,0); ground.receiveShadow=true; scene.add(ground);
 { const sh=new THREE.Shape(); for(let i=0;i<=48;i++){ const t=i/48*Math.PI*2; const r=1+0.12*Math.sin(t*3)+0.08*Math.cos(t*5); const x=(-100+36*r*Math.cos(t))*S, z=(-20+70*r*Math.sin(t))*S; i?sh.lineTo(x,z):sh.moveTo(x,z); }
   const g=new THREE.ShapeGeometry(sh); g.rotateX(Math.PI/2);
   const water=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:'#4c7b8f',roughness:.08,metalness:.3,side:THREE.DoubleSide})); water.position.y=-0.01; scene.add(water); }
-const skyU={top:{value:new THREE.Color('#5d9ad6')},bot:{value:new THREE.Color('#dfeaf0')}};
-const sky=new THREE.Mesh(new THREE.SphereGeometry(900,32,16),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,uniforms:skyU,
+const skyU={top:{value:new THREE.Color('#5d9ad6')},bot:{value:new THREE.Color('#dfeaf0')},tex:{value:null},has:{value:0},off:{value:-0.233}};
+const sky=new THREE.Mesh(new THREE.SphereGeometry(900,48,24),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:skyU,
   vertexShader:'varying vec3 vp; void main(){ vp=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-  fragmentShader:'uniform vec3 top; uniform vec3 bot; varying vec3 vp; void main(){ float h=clamp(vp.y*1.6+0.05,0.0,1.0); gl_FragColor=vec4(mix(bot,top,pow(h,0.7)),1.0); }'}));
+  fragmentShader:`uniform vec3 top; uniform vec3 bot; uniform sampler2D tex; uniform float has; uniform float off; varying vec3 vp;
+    void main(){ vec3 d=normalize(vp); float h=clamp(d.y*1.6+0.05,0.0,1.0); vec3 g=mix(bot,top,pow(h,0.7));
+      if(has>0.5){ float u=fract(atan(d.z,d.x)/6.2831853+0.5+off); float v=(0.5-asin(clamp(d.y,-1.,1.))/3.14159265)*1024.0/544.0; g=texture2D(tex,vec2(u,1.0-min(v,0.995))).rgb; }
+      gl_FragColor=vec4(g,1.0); }`}));
+TL.load(ASSETS+'sky.jpg',t=>{ t.wrapS=THREE.RepeatWrapping; t.colorSpace=THREE.NoColorSpace; t.generateMipmaps=false; t.minFilter=THREE.LinearFilter; skyU.tex.value=t; skyU.has.value=1; });
 scene.add(sky);
 scene.fog=new THREE.Fog('#dfeaf0',220,900);
 
@@ -867,19 +915,30 @@ scene.fog=new THREE.Fog('#dfeaf0',220,900);
   line(-12,-12,140,-12,9,1.5); line(150,30,240,0,9);
   for(const p of [[8,40],[26,42],[44,38],[15,32],[52,30],[120,62],[118,40],[132,50],[124,30],[116,63],[-20,40],[-25,10],[-30,55]]) T.push([p[0],p[1],0.9+r()*0.4]);
   for(let i=0;i<60;i++){ const a=r()*Math.PI*2, d=60+r()*30; T.push([-100+Math.cos(a)*42*(1+r()*.3), -20+Math.sin(a)*78*(1+r()*.2), 0.8+r()*.6]); }
-  const tg=new THREE.CylinderGeometry(0.18,0.28,3.2,6); tg.translate(0,1.6,0);
-  const cg=new THREE.IcosahedronGeometry(2.6,1); cg.translate(0,5.2,0);
-  const tm=new THREE.InstancedMesh(tg,MAT.trunk,T.length), cm=new THREE.InstancedMesh(cg,new THREE.MeshStandardMaterial({roughness:.95,flatShading:true}),T.length);
-  const m4=new THREE.Matrix4(), q=new THREE.Quaternion(), col=new THREE.Color();
-  T.forEach(([x,z,s],i)=>{ x*=S; z*=S; q.setFromAxisAngle(new THREE.Vector3(0,1,0),r()*6); m4.compose(new THREE.Vector3(x,0,z),q,new THREE.Vector3(s,s*(0.9+r()*0.4),s)); tm.setMatrixAt(i,m4); cm.setMatrixAt(i,m4);
-    col.setHSL(0.24+r()*0.07,0.38+r()*0.2,0.25+r()*0.12); cm.setColorAt(i,col); addBox(x-.3,x+.3,0,3,z-.3,z+.3); });
-  tm.castShadow=cm.castShadow=true; scene.add(tm,cm);
+  // 3 modèles d'arbre procéduraux (tronc + branches + bouquets de feuilles), instanciés
+  function treeVariant(seed){ const r=rng(seed); const wood=[], leaves=[]; const th=3.4+r()*1.4;
+    const t=new THREE.CylinderGeometry(0.13,0.24,th,8,6,false); t.translate(0,th/2,0); { const p=t.attributes.position; for(let k=0;k<p.count;k++){ const y=p.getY(k); p.setX(k,p.getX(k)+Math.sin(y*0.9+seed)*0.12); } } t.computeVertexNormals(); wood.push(t);
+    const nb=4+Math.floor(r()*3);
+    for(let i=0;i<nb;i++){ const a=i/nb*Math.PI*2+r()*0.8, tilt=0.55+r()*0.45, len=1.6+r()*1.4, y0=th*(0.55+r()*0.4);
+      const bg=new THREE.CylinderGeometry(0.04,0.1,len,6); bg.translate(0,len/2,0); bg.rotateZ(-tilt); bg.rotateY(a); bg.translate(0,y0,0); wood.push(bg);
+      const ex=Math.sin(tilt)*len*Math.cos(a), ez=-Math.sin(tilt)*len*Math.sin(a), ey=y0+Math.cos(tilt)*len;
+      const cr=1.3+r()*0.7; leaves.push(leafCards(ex,ey+0.2,ez,cr,cr*0.8,cr,34,1.25,seed*10+i)); }
+    leaves.push(leafCards(0,th+1.2,0,1.9,1.5,1.9,46,1.35,seed*10+9));
+    return [mergeGeometries(wood,false),mergeGeometries(leaves,false)]; }
+  const V=[treeVariant(3),treeVariant(8),treeVariant(15)];
+  const leafM=MAT.leaf.clone(); const parts=V.map(()=>[]); T.forEach((t,i)=>parts[i%3].push(t));
+  const m4=new THREE.Matrix4(), q=new THREE.Quaternion(), col=new THREE.Color(); const all=[];
+  V.forEach(([wg,lg],vi)=>{ const L=parts[vi]; const tm=new THREE.InstancedMesh(wg,MAT.bark,L.length), cm=new THREE.InstancedMesh(lg,leafM,L.length);
+    L.forEach(([x,z,s],i)=>{ x*=S; z*=S; q.setFromAxisAngle(new THREE.Vector3(0,1,0),r()*6); m4.compose(new THREE.Vector3(x,0,z),q,new THREE.Vector3(s,s*(0.9+r()*0.3),s)); tm.setMatrixAt(i,m4); cm.setMatrixAt(i,m4);
+      col.setHSL(0.22+r()*0.06,0.25+r()*0.25,0.62+r()*0.25); cm.setColorAt(i,col); addBox(x-.3,x+.3,0,3,z-.3,z+.3); });
+    tm.castShadow=cm.castShadow=true; cm.receiveShadow=true; scene.add(tm,cm); });
+
 }
 
 // lumières
 const hemi=new THREE.HemisphereLight('#ffffff','#d6d1c4',1.25); scene.add(hemi);
 const amb=new THREE.AmbientLight('#ffffff',0.55); scene.add(amb);
-const sun=new THREE.DirectionalLight('#fff4e0',2.4); sun.position.set(66*S-46,110,22*S+80); sun.target.position.set(66*S,0,22*S);
+const sun=new THREE.DirectionalLight('#fff4e0',2.4); sun.position.set(66*S-46,86,22*S+80); sun.target.position.set(66*S,0,22*S);
 sun.castShadow=true; sun.shadow.mapSize.set(isTouch?2048:4096,isTouch?2048:4096);
 Object.assign(sun.shadow.camera,{left:-150,right:150,top:120,bottom:-120,near:10,far:320}); sun.shadow.bias=-0.0004; sun.shadow.normalBias=0.04;
 scene.add(sun,sun.target);
